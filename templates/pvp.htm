@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play with Friend - Caro Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <!-- Player 1 Info -->
+            <div class="player-info">
+                <div class="player-avatar player1">
+                    <img src="{{ url_for('static', filename='images/avatar_0.png') }}" alt="Player 1">
+                </div>
+                <div class="player-details">
+                    <span class="player-name">{{ player1.username }}</span>
+                    <span class="player-score">0/4:12</span>
+                </div>
+            </div>
+            
+            <!-- Center Info -->
+            <div class="game-center-info">
+                <span class="coin-display">
+                    🪙 1.0
+                </span>
+            </div>
+            
+            <!-- Player 2 Info -->
+            <div class="player-info right">
+                <div class="player-details">
+                    <span class="player-name">{{ player2.username if player2 else 'Waiting...' }}</span>
+                    <span class="player-score">0/4:50</span>
+                </div>
+                <div class="player-avatar player2">
+                    <img src="{{ url_for('static', filename='images/avatar_1.png') }}" alt="Player 2">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Game Area -->
+        <div class="game-area">
+            <!-- Game Board -->
+            <div class="game-board" id="game-board">
+                <!-- Board will be generated via JavaScript -->
+            </div>
+            
+            <!-- Chat Area -->
+            <div class="chat-area">
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will be added dynamically -->
+                </div>
+                
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Viết tin nhắn..." />
+                    <button id="emoji-btn">😊</button>
+                    <button id="send-btn">📨</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Game Controls -->
+        <div class="game-controls">
+            <button class="give-up-btn">
+                Từ bỏ
+                <span class="key-hint">Esc</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Game Over Modal (Hidden by default) -->
+    <div class="game-over-modal" id="game-over-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="winner-display">
+                <div class="progress-bar">
+                    <div class="progress" id="progress-bar"></div>
+                    <div class="avatar-indicator" id="winner-avatar">
+                        <img src="{{ url_for('static', filename='images/avatar_0.png') }}" alt="Winner">
+                    </div>
+                </div>
+                
+                <p class="game-result" id="game-result">Đối thủ của bạn muốn chơi lại</p>
+                
+                <div class="after-game-controls">
+                    <button class="btn primary-btn" id="play-again-btn">
+                        Chơi lại
+                        <span class="key-hint">↵ Enter</span>
+                    </button>
+                    <button class="btn secondary-btn" id="leave-room-btn">
+                        Rời khỏi phòng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Connect to Socket.IO
+        const socket = io();
+        const roomCode = "{{ room_code }}";
+        const isPlayer1 = {{ 'true' if is_player1 else 'false' }};
+        const playerNum = isPlayer1 ? 1 : 2;
+        
+        // Join the room
+        socket.emit('join', {room: roomCode});
+        
+        // Game state
+        let board = Array(15).fill().map(() => Array(15).fill(0));
+        let currentPlayer = 1;  // 1 for player 1, 2 for player 2
+        let gameOver = false;
+        
+        // Initialize the game board
+        function initBoard() {
+            const boardElement = document.getElementById('game-board');
+            boardElement.innerHTML = '';
+            
+            for (let y = 0; y < 15; y++) {
+                for (let x = 0; x < 15; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'board-cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    cell.addEventListener('click', () => makeMove(x, y));
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+        
+        // Make a move
+        function makeMove(x, y) {
+            if (gameOver || board[y][x] !== 0 || currentPlayer !== playerNum) {
+                return;
+            }
+            
+            // Emit the move to server
+            socket.emit('make_move', {
+                room: roomCode,
+                x: x,
+                y: y,
+                player: playerNum
+            });
+        }
+        
+        // Update the UI to reflect the current board state
+        function updateBoardUI() {
+            const cells = document.querySelectorAll('.board-cell');
+            
+            for (let y = 0; y < 15; y++) {
+                for (let x = 0; x < 15; x++) {
+                    const index = y * 15 + x;
+                    cells[index].className = 'board-cell';
+                    
+                    if (board[y][x] === 1) {
+                        cells[index].classList.add('player1');
+                    } else if (board[y][x] === 2) {
+                        cells[index].classList.add('player2');
+                    }
+                }
+            }
+        }
+        
+        // Send chat message
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                socket.emit('chat_message', {
+                    room: roomCode,
+                    message: message
+                });
+                
+                input.value = '';
+            }
+        }
+        
+        // Add message to chat
+        function addMessage(sender, message, time) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageElement = document.createElement('div');
+            messageElement.className = 'chat-message';
+            
+            // Add right class if message is from current user
+            if (sender === "{{ player1.username if is_player1 else player2.username }}") {
+                messageElement.classList.add('self');
+            }
+            
+            messageElement.innerHTML = `
+                <span class="message-content">${message}</span>
+                <span class="message-time">${time}</span>
+            `;
+            
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Show game over screen
+        function showGameOver(winner) {
+            const modal = document.getElementById('game-over-modal');
+            const result = document.getElementById('game-result');
+            const progressBar = document.getElementById('progress-bar');
+            const winnerAvatar = document.getElementById('winner-avatar');
+            
+            if (winner === playerNum) {
+                result.textContent = 'Bạn đã thắng!';
+                progressBar.style.width = '70%';
+                winnerAvatar.querySelector('img').src = "{{ url_for('static', filename='images/avatar_0.png' if is_player1 else 'avatar_1.png') }}";
+            } else {
+                result.textContent = 'Bạn đã thua!';
+                progressBar.style.width = '30%';
+                winnerAvatar.querySelector('img').src = "{{ url_for('static', filename='images/avatar_1.png' if is_player1 else 'avatar_0.png') }}";
+            }
+            
+            modal.style.display = 'flex';
+        }
+        
+        // Request replay
+        function requestReplay() {
+            socket.emit('replay_request', {
+                room: roomCode
+            });
+            
+            const result = document.getElementById('game-result');
+            result.textContent = 'Đang chờ đối thủ...';
+        }
+        
+        // Event listeners
+        document.getElementById('play-again-btn').addEventListener('click', requestReplay);
+        document.getElementById('leave-room-btn').addEventListener('click', () => {
+            window.location.href = "{{ url_for('home.index') }}";
+        });
+        
+        document.querySelector('.give-up-btn').addEventListener('click', () => {
+            if (confirm('Bạn có chắc chắn muốn từ bỏ?')) {
+                window.location.href = "{{ url_for('home.index') }}";
+            }
+        });
+        
+        document.getElementById('send-btn').addEventListener('click', sendMessage);
+        document.getElementById('chat-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Socket.IO events
+        socket.on('move_made', (data) => {
+            const {x, y, player} = data;
+            
+            // Update the board
+            board[y][x] = player;
+            updateBoardUI();
+            
+            // Switch player
+            currentPlayer = 3 - player;  // Switch between 1 and 2
+        });
+        
+        socket.on('game_over', (data) => {
+            gameOver = true;
+            showGameOver(data.winner);
+        });
+        
+        socket.on('new_message', (data) => {
+            addMessage(data.sender, data.message, data.time);
+        });
+        
+        socket.on('replay_requested', (data) => {
+            const modal = document.getElementById('game-over-modal');
+            modal.style.display = 'flex';
+            
+            const result = document.getElementById('game-result');
+            result.textContent = 'Đối thủ của bạn muốn chơi lại';
+        });
+        
+        socket.on('replay_rejected', () => {
+            const result = document.getElementById('game-result');
+            result.textContent = 'Đối thủ từ chối chơi lại';
+        });
+        
+        socket.on('game_reset', () => {
+            board = Array(15).fill().map(() => Array(15).fill(0));
+            currentPlayer = 1;
+            gameOver = false;
+            
+            updateBoardUI();
+            
+            const modal = document.getElementById('game-over-modal');
+            modal.style.display = 'none';
+        });
+        
+        // Initialize the game
+        initBoard();
+    </script>
+</body>
+</html>

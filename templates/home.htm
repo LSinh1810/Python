@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caro Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="user-info">
+                <img src="{{ user.avatar if user else url_for('static', filename='images/default_avatar.png') }}" class="avatar">
+                <div class="user-details">
+                    {% if username %}
+                    <h3>{{ username }}</h3>
+                    <span class="coins">{{ user_coins }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins"></span>
+                    {% else %}
+                    <h3>Khách</h3>
+                    <span class="coins">{{ user_coins }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins"></span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <nav class="menu">
+                <a href="{{ url_for('home.index') }}" class="menu-item active">
+                    <span class="icon">🏠</span>
+                    <span>Trang chủ</span>
+                </a>
+                <a href="{{ url_for('store.index') }}" class="menu-item">
+                    <span class="icon">🎁</span>
+                    <span>Vật phẩm</span>
+                </a>
+                <a href="{{ url_for('profile.index') }}" class="menu-item">
+                    <span class="icon">👤</span>
+                    <span>Hồ sơ</span>
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="game-header">
+                <div class="game-logo">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Caro">
+                </div>
+                <div class="game-info">
+                    <h1>Caro trực tuyến</h1>
+                    <p>Người đầu tiên nối được năm quân cờ sẽ thắng</p>
+                </div>
+            </div>
+            
+            <div class="game-options">
+                <a href="{{ url_for('pvp_noti.index') }}" class="game-btn">
+                    <span class="icon">👥</span>
+                    <span>Chơi với một người bạn</span>
+                </a>
+                <a href="{{ url_for('pve_noti.index') }}" class="game-btn">
+                    <span class="icon">🤖</span>
+                    <span>Chơi với robot</span>
+                </a>
+            </div>
+            
+            <div class="game-content">
+                <!-- Leaderboard -->
+                <div class="content-container">
+                    <div class="leaderboard">
+                        <h2>Bảng xếp hạng</h2>
+                        <div class="countdown" id="countdown">
+                            Người chơi xuất sắc nhất
+                        </div>
+                        
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th class="rank-header"></th>
+                                    <th class="player-header">Tên</th>
+                                    <th class="score-header">Số ván thắng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rank in leaderboard %}
+                                <tr>
+                                    <td class="rank">
+                                        {% if loop.index == 1 %}
+                                        <span class="medal gold-medal">🥇</span>
+                                        {% elif loop.index == 2 %}
+                                        <span class="medal silver-medal">🥈</span>
+                                        {% elif loop.index == 3 %}
+                                        <span class="medal bronze-medal">🥉</span>
+                                        {% else %}
+                                        {{ loop.index }}.
+                                        {% endif %}
+                                    </td>
+                                    <td class="player">
+                                        <img src="{{ rank.user.avatar }}" class="player-avatar">
+                                        <span>{{ rank.user.username }} 🇻🇳</span>
+                                    </td>
+                                    <td class="score">{{ rank.wins }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        
+                        <a href="{{ url_for('leaderboard.index') }}" class="view-all">Nhìn thấy tất cả</a>
+                    </div>
+                </div>
+                
+                <!-- Store -->
+                <div class="content-container">
+                    <div class="store-preview">
+                        <div class="store-header">
+                            <h2>Cửa hàng</h2>
+                            <div class="coin-display">
+                                {{ user_coins }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins" class="coin-img">
+                            </div>
+                        </div>
+                        
+                        <!-- Icons -->
+                        <div class="item-section">
+                            <div class="section-header">
+                                <h3>Icon</h3>
+                            </div>
+                            
+                            <div class="item-grid">
+                                {% for icon in icons %}
+                                <div class="store-item">
+                                    <img src="{{ icon.image_url }}" alt="{{ icon.name }}">
+                                    {% if icon.skin_id in user_skin_ids %}
+                                    <span class="owned-label">Đã sở hữu</span>
+                                    {% else %}
+                                    <span class="price">{{ icon.price }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins" class="coin-icon"></span>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Avatars -->
+                        <div class="item-section">
+                            <div class="section-header">
+                                <h3>Avatar</h3>
+                            </div>
+                            
+                            <div class="item-grid">
+                                {% for avatar in avatars %}
+                                <div class="store-item">
+                                    <img src="{{ avatar.image_url }}" alt="{{ avatar.name }}">
+                                    {% if avatar.avatar_id in user_avatar_ids %}
+                                    <span class="owned-label">Đã sở hữu</span>
+                                    {% else %}
+                                    <span class="price">{{ avatar.price }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins" class="coin-icon"></span>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="view-all-container">
+                            <a href="{{ url_for('store.index') }}" class="view-all">Xem tất cả vật phẩm</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

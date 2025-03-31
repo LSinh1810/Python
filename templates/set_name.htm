@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caro Game - Set Name</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="set-name-container">
+            <h1>Welcome to Caro Game</h1>
+            <p>Please enter your display name to continue</p>
+            
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for message in messages %}
+                            <div class="flash-message">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('home.enter_name') }}">
+                <div class="form-group">
+                    <label for="display_name">Display Name:</label>
+                    <input type="text" id="display_name" name="display_name" required minlength="3" maxlength="50">
+                </div>
+                <button type="submit" class="btn primary-btn">Start Playing</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

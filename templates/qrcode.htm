@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Link - Caro Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="share-page">
+        <div class="share-container">
+            <h1>Chia sẻ liên kết này với một người bạn</h1>
+            
+            <div class="share-link">
+                <input type="text" value="https://carogames.qlda.vn/{{ room_code }}" readonly id="room-link">
+                <button class="copy-btn" onclick="copyLink()">📋</button>
+            </div>
+            
+            <div class="qr-code">
+                <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+            </div>
+            
+            <div class="waiting-text">
+                <p>Đang chờ người chơi tham gia...</p>
+                <div class="loading-spinner"></div>
+            </div>
+            
+            <div class="qr-buttons">
+                <a href="{{ url_for('pvp_noti.create_pvp_game') }}" class="btn primary-btn">Tạo phòng</a>
+                <a href="{{ url_for('home.index') }}" class="btn secondary-btn">Trở về</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Connect to Socket.IO
+        const socket = io();
+        const roomCode = "{{ room_code }}";
+        
+        // Join the room
+        socket.emit('join', {room: roomCode});
+        
+        // Listen for player joined event
+        socket.on('player_joined', function(data) {
+            // Redirect to the game page
+            window.location.href = "/play/pvp/" + roomCode;
+        });
+        
+        function copyLink() {
+            const linkInput = document.getElementById('room-link');
+            linkInput.select();
+            document.execCommand('copy');
+            
+            // Show copied notification
+            alert('Link copied to clipboard!');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - Caro Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="user-info">
+                <img src="{{ url_for('static', filename='images/default_avatar.png') }}" class="avatar">
+                <div class="user-details">
+                    <h3>{{ user.displayName }}</h3>
+                    <span class="coins">{{ user_coins }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins"></span>
+                </div>
+            </div>
+            
+            <nav class="menu">
+                <a href="{{ url_for('home') }}" class="menu-item">
+                    <span class="icon">📜</span>
+                    <span>Lịch sử</span>
+                </a>
+                <a href="{{ url_for('home.index') }}" class="menu-item">
+                    <span class="icon">🏠</span>
+                    <span>Trang chủ</span>
+                </a>
+                <a href="{{ url_for('store.index') }}" class="menu-item">
+                    <span class="icon">🎁</span>
+                    <span>Vật phẩm</span>
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="profile-container">
+                <h1>Tài khoản của tôi</h1>
+                
+                <form action="{{ url_for('profile.update_profile') }}" method="POST" class="profile-form">
+                    <div class="form-group">
+                        <label for="username">Tên hiển thị</label>
+                        <input type="text" id="username" name="username" value="{{ user.username }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="user_id">ID</label>
+                        <div class="id-field">
+                            <input type="text" id="user_id" value="{{ user.user_id }}" readonly>
+                            <button type="button" class="copy-btn" onclick="copyUserId()">📋</button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn primary-btn">Cập nhật</button>
+                </form>
+                
+                <div class="delete-account">
+                    <h2>Xóa tài khoản</h2>
+                    <p>
+                        Việc xóa tài khoản sẽ xóa vĩnh viễn tài khoản, gồi đấu, trò 
+                        chơi, thứ hạng và email liên trì của bạn. Không thể hoàn tác 
+                        hành động này.
+                    </p>
+                    <button type="button" class="btn danger-btn" id="delete-btn">Xóa tài khoản</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- User Profile Sidebar -->
+        <div class="profile-sidebar">
+            <div class="profile-sidebar-header">
+                <a href="{{ url_for('home.index') }}" class="close-btn">&times;</a>
+            </div>
+            
+            <div class="profile-user-info">
+                <h3>{{ user.username }}</h3>
+                <span class="user-type">Khách mời</span>
+            </div>
+            
+            <div class="profile-avatar">
+                <img src="{{ url_for('static', filename='images/monster_avatar.png') }}" alt="Monster Avatar">
+            </div>
+            
+            <div class="profile-game-info">
+                <h3>Caro</h3>
+                <div class="level-badge">Cấp độ 3</div>
+                <div class="level-progress">1 / 3 / 5</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function copyUserId() {
+            const idInput = document.getElementById('user_id');
+            idInput.select();
+            document.execCommand('copy');
+            
+            // Show copied notification
+            alert('ID copied to clipboard!');
+        }
+        
+        document.getElementById('delete-btn').addEventListener('click', function() {
+            if (confirm('Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.')) {
+                // Send request to delete account
+                // For this demo, just redirect to home
+                alert('Tài khoản đã được xóa.');
+                window.location.href = "{{ url_for('home.index') }}";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng xếp hạng - Caro Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .leaderboard-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .leaderboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .leaderboard-title {
+            font-size: 24px;
+            color: #333;
+            margin: 0;
+        }
+        
+        .leaderboard-stats {
+            text-align: right;
+            color: #666;
+        }
+        
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .leaderboard-table th {
+            background-color: #f2f2f2;
+            padding: 12px;
+            text-align: left;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .leaderboard-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .leaderboard-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .leaderboard-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .user-rank {
+            width: 50px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+        
+        .user-name {
+            display: flex;
+            align-items: center;
+            color: #000000;
+        }
+        
+        .user-wins {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .current-user {
+            background-color: #fff9c4;
+        }
+        
+        .medal {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        
+        .gold-medal { color: #FFD700; }
+        .silver-medal { color: #C0C0C0; }
+        .bronze-medal { color: #CD7F32; }
+        
+        .back-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        
+        .back-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="leaderboard-container">
+        <div class="leaderboard-header">
+            <h1 class="leaderboard-title">Bảng xếp hạng</h1>
+            <div class="leaderboard-stats">
+                <p>Tổng số trận đã chơi: {{ total_games }}</p>
+                {% if user_rank %}
+                <p>Thứ hạng của bạn: #{{ user_rank }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Hạng</th>
+                    <th>Người chơi</th>
+                    <th>Thắng</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user_data, leaderboard in leaderboard_data %}
+                <tr {% if user and user.user_id == user_data.user_id %}class="current-user"{% endif %}>
+                    <td class="user-rank">
+                        {% if loop.index == 1 %}
+                        <span class="medal gold-medal">🥇</span>
+                        {% elif loop.index == 2 %}
+                        <span class="medal silver-medal">🥈</span>
+                        {% elif loop.index == 3 %}
+                        <span class="medal bronze-medal">🥉</span>
+                        {% else %}
+                        {{ loop.index }}
+                        {% endif %}
+                    </td>
+                    <td class="user-name">
+                        <img src="{{ user_data.avatar or '/static/images/default_avatar.png' }}" class="user-avatar" alt="{{ user_data.displayName }}">
+                        {{ user_data.displayName }}
+                    </td>
+                    <td class="user-wins">{{ leaderboard.wins }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <a href="{{ url_for('home.index') }}" class="back-button">Quay lại trang chủ</a>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play with Friend - Caro Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="modal-overlay">
+        <div class="game-modal">
+            <div class="modal-header">
+                <a href="{{ url_for('home.index') }}" class="close-btn">&times;</a>
+                <h2>Chơi với bạn bè</h2>
+            </div>
+            
+            <div class="modal-body">
+                <h3>Trò chơi</h3>
+                
+                <div class="game-info-box">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" class="game-icon" alt="Caro">
+                    <div class="game-details">
+                        <h4>Caro</h4>
+                        <p>Người đầu tiên nối được năm quân cờ sẽ thắng</p>
+                    </div>
+                </div>
+                
+                <div class="game-settings">
+                    <div class="setting-item">
+                        <span class="setting-label">Thời gian mỗi lượt:</span>
+                        <span class="setting-value">30 giây</span>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <span class="setting-label">Số phút cho mỗi người chơi:</span>
+                        <span class="setting-value">5 phút</span>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <span class="setting-label">Ai chơi trước?</span>
+                        <span class="setting-value">Ngẫu nhiên</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <a href="{{ url_for('pvp_noti.create_pvp_game') }}" class="btn primary-btn">
+                    Tiếp tục
+                    <span class="key-hint">↵ Enter</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/game_settings.js') }}"></script>
+</body>
+</html>
