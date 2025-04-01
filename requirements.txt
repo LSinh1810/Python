@@ -1,0 +1,9 @@
+Flask==3.0.2
+Flask-SQLAlchemy==3.1.1
+Flask-SocketIO==5.3.6
+PyMySQL==1.1.0
+python-socketio==5.11.1
+python-engineio==4.9.1
+qrcode==7.4.2
+Pillow==11.1.0
+numpy==1.26.4 

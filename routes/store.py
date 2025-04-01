@@ -94,78 +94,65 @@ def buy_item(item_type, item_id):
     if not user_id:
         return jsonify({'success': False, 'message': 'Bạn cần đăng nhập để mua hàng'})
     
-    # Xác định loại vật phẩm
-    item_name = "Avatar" if item_type == "avatar" else "Icon"
+    # Lấy thông tin người dùng
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'success': False, 'message': 'Không tìm thấy người dùng'})
     
-    # Đọc cookie hiện tại của người dùng để cập nhật vật phẩm sở hữu
-    owned_avatars = request.cookies.get('owned_avatars', '')
-    owned_skins = request.cookies.get('owned_skins', '')
-    
-    # Chuyển đổi chuỗi cookie thành danh sách các ID
-    owned_avatar_ids = [int(id) for id in owned_avatars.split(',') if id.isdigit()]
-    owned_skin_ids = [int(id) for id in owned_skins.split(',') if id.isdigit()]
-    
-    # Kiểm tra xem người dùng đã sở hữu vật phẩm chưa
-    if (item_type == 'avatar' and item_id in owned_avatar_ids) or \
-       (item_type == 'skin' and item_id in owned_skin_ids):
-        return jsonify({'success': False, 'message': f'Bạn đã sở hữu {item_name} này rồi'})
-    
-    # Lấy thông tin giá của vật phẩm
-    item_price = 0
-    if item_type == 'avatar':
-        # Dữ liệu giả cho avatar
-        avatars = [
-            {'avatar_id': 1, 'price': 300},
-            {'avatar_id': 2, 'price': 400},
-            {'avatar_id': 3, 'price': 200}
-        ]
-        for avatar in avatars:
-            if avatar['avatar_id'] == item_id:
-                item_price = avatar['price']
-                break
-    else:  # skin
-        # Dữ liệu giả cho skin
-        skins = [
-            {'skin_id': 1, 'price': 100},
-            {'skin_id': 2, 'price': 200}
-        ]
-        for skin in skins:
-            if skin['skin_id'] == item_id:
-                item_price = skin['price']
-                break
-    
-    # Lấy số tiền hiện tại từ cookie
+    # Lấy số tiền từ cookie
     user_coins = int(request.cookies.get('user_coins', '3000'))
     
-    # Kiểm tra xem người dùng có đủ tiền không
-    if user_coins < item_price:
-        return jsonify({'success': False, 'message': 'Bạn không đủ tiền để mua vật phẩm này'})
+    # Xác định loại vật phẩm và giá
+    if item_type == "avatar":
+        item = Avatar.query.get(item_id)
+        if not item:
+            return jsonify({'success': False, 'message': 'Avatar không tồn tại'})
+        price = item.price
+    else:
+        item = Skin.query.get(item_id)
+        if not item:
+            return jsonify({'success': False, 'message': 'Skin không tồn tại'})
+        price = item.price
     
-    # Trừ tiền người dùng
-    new_user_coins = user_coins - item_price
+    # Kiểm tra số tiền
+    if user_coins < price:
+        return jsonify({'success': False, 'message': 'Số tiền không đủ'})
     
-    # Thêm vật phẩm vào danh sách sở hữu
-    if item_type == 'avatar':
-        owned_avatar_ids.append(item_id)
-        new_owned_avatars = ','.join(map(str, owned_avatar_ids))
-    else:  # skin
-        owned_skin_ids.append(item_id)
-        new_owned_skins = ','.join(map(str, owned_skin_ids))
+    # Kiểm tra xem đã sở hữu vật phẩm chưa
+    if item_type == "avatar":
+        existing_item = UserAvatar.query.filter_by(user_id=user_id, avatar_id=item_id).first()
+        if existing_item:
+            return jsonify({'success': False, 'message': 'Bạn đã sở hữu avatar này'})
+    else:
+        existing_item = UserSkin.query.filter_by(user_id=user_id, skin_id=item_id).first()
+        if existing_item:
+            return jsonify({'success': False, 'message': 'Bạn đã sở hữu skin này'})
     
-    # Tạo response thành công
-    response = jsonify({
-        'success': True, 
-        'message': f'Mua {item_name} thành công!',
-        'remaining_coins': new_user_coins
-    })
-    
-    # Lưu danh sách vật phẩm mới vào cookie (30 ngày)
-    if item_type == 'avatar':
-        response.set_cookie('owned_avatars', new_owned_avatars, max_age=60*60*24*30)
-    else:  # skin
-        response.set_cookie('owned_skins', new_owned_skins, max_age=60*60*24*30)
-    
-    # Lưu số tiền mới vào cookie
-    response.set_cookie('user_coins', str(new_user_coins), max_age=60*60*24*30)
-    
-    return response 
+    # Mua vật phẩm
+    try:
+        # Trừ tiền
+        user_coins -= price
+        
+        # Lưu vào database
+        if item_type == "avatar":
+            user_avatar = UserAvatar(user_id=user_id, avatar_id=item_id)
+            db.session.add(user_avatar)
+        else:
+            user_skin = UserSkin(user_id=user_id, skin_id=item_id)
+            db.session.add(user_skin)
+        
+        db.session.commit()
+        
+        # Cập nhật cookie
+        response = make_response(jsonify({
+            'success': True,
+            'message': 'Mua hàng thành công',
+            'coins': user_coins
+        }))
+        response.set_cookie('user_coins', str(user_coins))
+        
+        return response
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Có lỗi xảy ra khi mua hàng'}) 
