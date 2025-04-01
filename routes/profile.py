@@ -20,6 +20,10 @@ def index():
         display_name = request.cookies.get('display_name')
         user = create_new_user(user_id, display_name)
     
+    # Lấy avatar mặc định
+    default_avatar = Avatar.query.filter_by(price=0).first()
+    default_avatar_id = default_avatar.avatar_id if default_avatar else 1
+    
     # Lấy danh sách avatar của người dùng
     user_avatars = db.session.query(
         Avatar
@@ -58,7 +62,8 @@ def index():
         user_skins=user_skins,
         available_avatars=available_avatars,
         available_skins=available_skins,
-        user_coins=user_coins
+        user_coins=user_coins,
+        default_avatar_id=default_avatar_id
     )
 
 @profile_bp.route('/update_profile', methods=['POST'])
@@ -70,6 +75,9 @@ def update_profile():
     
     # Get form data
     display_name = request.form.get('displayName')
+    selected_avatar_id = request.form.get('selected_avatar')
+    
+    print(f"DEBUG: selected_avatar_id = {selected_avatar_id}")
     
     # Validate display name
     if not display_name or len(display_name) < 3 or len(display_name) > 50:
@@ -79,12 +87,58 @@ def update_profile():
     # Update user
     user = User.query.get(user_id)
     if user:
+        # Cập nhật tên người dùng
         user.displayName = display_name
-        db.session.commit()
         
-        # Update cookie
+        # Cập nhật avatar nếu có chọn
+        if selected_avatar_id:
+            print(f"DEBUG: Đang cập nhật avatar, ID = {selected_avatar_id}")
+            # Kiểm tra xem người dùng có avatar này không
+            avatar_id = int(selected_avatar_id)
+            
+            # Lấy thông tin avatar mặc định
+            default_avatar = Avatar.query.filter_by(price=0).first()
+            print(f"DEBUG: Default avatar ID = {default_avatar.avatar_id if default_avatar else 'Not found'}")
+            
+            # Kiểm tra xem người dùng có avatar này không
+            if avatar_id == default_avatar.avatar_id:
+                # Đây là avatar mặc định
+                print("DEBUG: Đang đặt avatar mặc định")
+                user.avatar = default_avatar.image_url
+            else:
+                user_avatar = UserAvatar.query.filter_by(
+                    user_id=user_id,
+                    avatar_id=avatar_id
+                ).first()
+                
+                if user_avatar:
+                    print("DEBUG: Đang đặt avatar từ UserAvatar")
+                    # Lấy thông tin avatar
+                    avatar = Avatar.query.get(avatar_id)
+                    if avatar:
+                        user.avatar = avatar.image_url
+                else:
+                    print("DEBUG: Không tìm thấy avatar trong UserAvatar")
+        
+        # Lưu thay đổi
+        db.session.commit()
+        print(f"DEBUG: Avatar sau khi cập nhật = {user.avatar}")
+        
+        # Cập nhật cookie
         response = make_response(redirect(url_for('profile.index')))
         response.set_cookie('display_name', display_name)
+        if selected_avatar_id:
+            # Lấy thông tin avatar mặc định
+            default_avatar = Avatar.query.filter_by(price=0).first()
+            
+            if int(selected_avatar_id) == default_avatar.avatar_id:
+                # Đây là avatar mặc định
+                response.set_cookie('user_avatar', default_avatar.image_url, max_age=60*60*24*30)
+            else:
+                avatar = Avatar.query.get(int(selected_avatar_id))
+                if avatar:
+                    response.set_cookie('user_avatar', avatar.image_url, max_age=60*60*24*30)
+                
         flash('Cập nhật hồ sơ thành công')
         return response
     
@@ -118,7 +172,13 @@ def change_avatar(avatar_id):
     if user:
         user.avatar = avatar.image_url
         db.session.commit()
+        
+        # Cập nhật avatar trong cookie để hiển thị đúng ở trang khác
+        response = make_response(redirect(url_for('profile.index')))
+        response.set_cookie('user_avatar', avatar.image_url, max_age=60*60*24*30)  # 30 ngày
+        
         flash('Đã cập nhật avatar thành công')
+        return response
     else:
         flash('Không tìm thấy người dùng')
     

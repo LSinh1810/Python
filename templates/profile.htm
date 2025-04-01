@@ -5,13 +5,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Account - Caro Game</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .avatar-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .avatar-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .avatar-item.active {
+            border-color: #4CAF50;
+        }
+        
+        .avatar-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .avatar-item input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .avatar-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .avatar-item::after {
+            content: "";
+            position: absolute;
+            right: 5px;
+            bottom: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #fff;
+            border: 2px solid #ddd;
+            display: none;
+        }
+        
+        .avatar-item.active::after {
+            display: block;
+            background-color: #4CAF50;
+            border-color: #fff;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="user-info">
-                <img src="{{ url_for('static', filename='images/default_avatar.png') }}" class="avatar">
+                <img src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}" class="avatar">
                 <div class="user-details">
                     <h3>{{ user.displayName }}</h3>
                     <span class="coins">{{ user_coins }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins"></span>
@@ -56,7 +116,7 @@
                     <div class="form-group">
                         <label>Avatar hiện tại</label>
                         <div class="current-avatar">
-                            <img src="{{ url_for('static', filename=user.avatar if user.avatar else 'images/default_avatar.png') }}" alt="Current Avatar" class="avatar-preview">
+                            <img src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}" alt="Current Avatar" class="avatar-preview">
                         </div>
                     </div>
 
@@ -64,11 +124,19 @@
                         <label>Avatar đã mua</label>
                         <div class="avatar-grid">
                             {% if user_avatars %}
-                                {% for avatar in user_avatars %}
-                                <div class="avatar-item {% if user.avatar == avatar.image_url %}active{% endif %}">
-                                    <img src="{{ url_for('static', filename=avatar.image_url) }}" alt="Avatar {{ avatar.avatar_id }}">
-                                    <a href="{{ url_for('profile.change_avatar', avatar_id=avatar.avatar_id) }}" class="select-avatar">Chọn</a>
+                                <!-- Avatar mặc định -->
+                                <div class="avatar-item {% if user.avatar == '/static/images/default_avatar.png' %}active{% endif %}">
+                                    <img src="/static/images/default_avatar.png" alt="Avatar mặc định">
+                                    <input type="radio" name="selected_avatar" value="{{ default_avatar_id }}" {% if user.avatar == '/static/images/default_avatar.png' %}checked{% endif %}>
                                 </div>
+                                
+                                {% for avatar in user_avatars %}
+                                {% if avatar.image_url != '/static/images/default_avatar.png' %}
+                                <div class="avatar-item {% if user.avatar == avatar.image_url %}active{% endif %}">
+                                    <img src="{{ avatar.image_url }}" alt="Avatar {{ avatar.avatar_id }}">
+                                    <input type="radio" name="selected_avatar" value="{{ avatar.avatar_id }}" {% if user.avatar == avatar.image_url %}checked{% endif %}>
+                                </div>
+                                {% endif %}
                                 {% endfor %}
                             {% else %}
                                 <p class="no-items">Bạn chưa mua avatar nào. Hãy đến <a href="{{ url_for('store.index') }}">Cửa hàng</a> để mua avatar mới!</p>
@@ -98,18 +166,15 @@
             </div>
             
             <div class="profile-user-info">
-                <h3>{{ user.username }}</h3>
-                <span class="user-type">Khách mời</span>
+                <h3>{{ user.displayName }}</h3>
             </div>
             
             <div class="profile-avatar">
-                <img src="{{ url_for('static', filename='images/monster_avatar.png') }}" alt="Monster Avatar">
+                <img src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}" alt="Avatar">
             </div>
             
-            <div class="profile-game-info">
-                <h3>Caro</h3>
-                <div class="level-badge">Cấp độ 3</div>
-                <div class="level-progress">1 / 3 / 5</div>
+            <div class="profile-coins" style="text-align: center; margin-top: 10px;">
+                <span class="coins">{{ user_coins }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins"></span>
             </div>
         </div>
     </div>
@@ -126,11 +191,52 @@
         
         document.getElementById('delete-btn').addEventListener('click', function() {
             if (confirm('Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.')) {
-                // Send request to delete account
-                // For this demo, just redirect to home
-                alert('Tài khoản đã được xóa.');
-                window.location.href = "{{ url_for('home.index') }}";
+                // Xóa tất cả cookies
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i];
+                    const eqPos = cookie.indexOf("=");
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                }
+                
+                // Chuyển hướng đến trang enter_name
+                window.location.href = "{{ url_for('home.enter_name') }}";
             }
+        });
+        
+        // Xử lý chọn avatar
+        document.addEventListener('DOMContentLoaded', function() {
+            const avatarItems = document.querySelectorAll('.avatar-item');
+            const radioButtons = document.querySelectorAll('input[name="selected_avatar"]');
+            
+            radioButtons.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    // Xóa class active khỏi tất cả avatar
+                    avatarItems.forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    
+                    // Thêm class active cho avatar được chọn
+                    if (this.checked) {
+                        this.closest('.avatar-item').classList.add('active');
+                    }
+                });
+            });
+            
+            // Cho phép click vào avatar để chọn radio button
+            avatarItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio && e.target !== radio) {
+                        radio.checked = true;
+                        
+                        // Trigger event change để cập nhật UI
+                        const event = new Event('change');
+                        radio.dispatchEvent(event);
+                    }
+                });
+            });
         });
     </script>
 </body>

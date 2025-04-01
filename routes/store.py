@@ -20,62 +20,48 @@ def index():
             'avatar': '/static/images/default_avatar.png'
         }
     
-    # Dữ liệu giả cho avatar
-    avatars = [
-        {
-            'avatar_id': 1,
-            'name': 'Avatar 1', 
-            'image_url': '/static/images/avatar1.png',
-            'price': 300
-        },
-        {
-            'avatar_id': 2,
-            'name': 'Avatar 2',
-            'image_url': '/static/images/avatar2.png',
-            'price': 400
-        },
-        {
-            'avatar_id': 3,
-            'name': 'Avatar Mặc định',
-            'image_url': '/static/images/default_avatar.png',
-            'price': 200
-        }
-    ]
+    # Lấy avatars từ database và lọc
+    all_avatars = Avatar.query.all()
     
-    # Dữ liệu giả cho skin
-    skins = [
-        {
-            'skin_id': 1,
-            'name': 'Icon 1',
-            'image_url': '/static/images/icon1.png',
-            'price': 100
-        },
-        {
-            'skin_id': 2,
-            'name': 'Icon 2',
-            'image_url': '/static/images/icon2.png',
-            'price': 200
-        }
-    ]
+    # Lọc avatar và loại bỏ trùng lặp
+    avatars = []
+    added_urls = set()
     
-    # Đọc danh sách vật phẩm đã sở hữu từ cookie
-    owned_avatars = request.cookies.get('owned_avatars', '')
-    owned_skins = request.cookies.get('owned_skins', '')
+    # Tìm avatar1, avatar2, avatar3 (không lấy default_avatar)
+    for avatar in all_avatars:
+        if avatar.image_url in added_urls:
+            continue  # Bỏ qua nếu URL này đã được thêm
+            
+        if "avatar1.png" in avatar.image_url or "avatar2.png" in avatar.image_url or "avatar3.png" in avatar.image_url:
+            avatars.append(avatar)
+            added_urls.add(avatar.image_url)
     
-    # Chuyển đổi chuỗi cookie thành danh sách các ID
-    user_avatar_ids = [int(id) for id in owned_avatars.split(',') if id.isdigit()]
-    user_skin_ids = [int(id) for id in owned_skins.split(',') if id.isdigit()]
+    # Lấy skins từ database và lọc
+    all_skins = Skin.query.all()
     
-    # Thêm avatar mặc định (ID 3) nếu người dùng chưa có avatar nào
-    if 3 not in user_avatar_ids:
-        user_avatar_ids.append(3)
+    # Lọc skin và loại bỏ trùng lặp
+    skins = []
+    added_urls = set()  # Reset lại set cho skin
+    
+    # Tìm icon1, icon2 (không lấy default_icon)
+    for skin in all_skins:
+        if skin.image_url in added_urls:
+            continue  # Bỏ qua nếu URL này đã được thêm
+            
+        if "icon1.png" in skin.image_url or "icon2.png" in skin.image_url:
+            skins.append(skin)
+            added_urls.add(skin.image_url)
+    
+    # Lấy danh sách vật phẩm đã sở hữu từ database
+    user_avatars = UserAvatar.query.filter_by(user_id=user_id).all()
+    user_skins = UserSkin.query.filter_by(user_id=user_id).all()
+    
+    # Chuyển đổi thành danh sách các ID
+    user_avatar_ids = [user_avatar.avatar_id for user_avatar in user_avatars]
+    user_skin_ids = [user_skin.skin_id for user_skin in user_skins]
     
     # Lấy số tiền từ cookie
     user_coins = request.cookies.get('user_coins', '3000')
-    
-    # In ra log để debug
-    print("Avatars in store:", avatars)
-    print("User owned avatar IDs:", user_avatar_ids)
     
     return render_template(
         'store.htm',

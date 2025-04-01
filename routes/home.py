@@ -1,7 +1,7 @@
 import random
 import string
 from flask import Blueprint, render_template, request, redirect, url_for, make_response
-from models import Game, User, Leaderboard, Avatar, Skin
+from models import Game, User, Leaderboard, Avatar, Skin, UserAvatar, UserSkin
 from extensions import db
 from sqlalchemy import desc
 
@@ -90,8 +90,34 @@ def index():
         ]
     
     # Lấy dữ liệu icon và avatar từ cơ sở dữ liệu
-    icons = Skin.query.limit(2).all()
-    avatars = Avatar.query.limit(3).all()
+    all_icons = Skin.query.all()
+    all_avatars = Avatar.query.all()
+    
+    # Lọc avatar và loại bỏ trùng lặp
+    avatars = []
+    added_urls = set()
+    
+    # Tìm avatar1, avatar2, avatar3 (không lấy default_avatar)
+    for avatar in all_avatars:
+        if avatar.image_url in added_urls:
+            continue  # Bỏ qua nếu URL này đã được thêm
+            
+        if "avatar1.png" in avatar.image_url or "avatar2.png" in avatar.image_url or "avatar3.png" in avatar.image_url:
+            avatars.append(avatar)
+            added_urls.add(avatar.image_url)
+    
+    # Lọc skin và loại bỏ trùng lặp
+    icons = []
+    added_urls = set()  # Reset lại set cho skin
+    
+    # Tìm icon1, icon2 (không lấy default_icon)
+    for skin in all_icons:
+        if skin.image_url in added_urls:
+            continue  # Bỏ qua nếu URL này đã được thêm
+            
+        if "icon1.png" in skin.image_url or "icon2.png" in skin.image_url:
+            icons.append(skin)
+            added_urls.add(skin.image_url)
     
     # Tạo dữ liệu giả cho icons và avatars nếu không có dữ liệu từ database
     if not icons:
@@ -126,23 +152,19 @@ def index():
             },
             {
                 "avatar_id": 3,
-                "name": "Avatar Mặc định",
-                "image_url": "/static/images/default_avatar.png",
-                "price": 200
+                "name": "Avatar 3",
+                "image_url": "/static/images/avatar3.png",
+                "price": 500
             }
         ]
 
-    # Đọc danh sách vật phẩm đã sở hữu từ cookie
-    owned_avatars = request.cookies.get('owned_avatars', '')
-    owned_skins = request.cookies.get('owned_skins', '')
+    # Lấy danh sách vật phẩm đã sở hữu từ database
+    user_avatars = UserAvatar.query.filter_by(user_id=user_id).all()
+    user_skins = UserSkin.query.filter_by(user_id=user_id).all()
     
-    # Chuyển đổi chuỗi cookie thành danh sách các ID
-    user_avatar_ids = [int(id) for id in owned_avatars.split(',') if id.isdigit()]
-    user_skin_ids = [int(id) for id in owned_skins.split(',') if id.isdigit()]
-    
-    # Thêm avatar mặc định (ID 3) nếu người dùng chưa có avatar nào
-    if 3 not in user_avatar_ids:
-        user_avatar_ids.append(3)
+    # Chuyển đổi thành danh sách các ID
+    user_avatar_ids = [user_avatar.avatar_id for user_avatar in user_avatars]
+    user_skin_ids = [user_skin.skin_id for user_skin in user_skins]
     
     # Lấy số tiền từ cookie
     user_coins = request.cookies.get('user_coins', '3000')

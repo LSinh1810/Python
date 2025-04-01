@@ -11,7 +11,7 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="user-info">
-                <img src="{{ user.avatar if user else url_for('static', filename='images/default_avatar.png') }}" class="avatar">
+                <img src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}" class="avatar">
                 <div class="user-details">
                     {% if username %}
                     <h3>{{ username }}</h3>
