@@ -326,6 +326,12 @@ body {
     margin-bottom: 10px;
 }
 
+.item-details h3 {
+    color: #000000;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
 /* Game Modal */
 .modal-overlay {
     position: fixed;

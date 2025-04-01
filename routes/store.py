@@ -73,6 +73,10 @@ def index():
     # Lấy số tiền từ cookie
     user_coins = request.cookies.get('user_coins', '3000')
     
+    # In ra log để debug
+    print("Avatars in store:", avatars)
+    print("User owned avatar IDs:", user_avatar_ids)
+    
     return render_template(
         'store.htm',
         user=user,

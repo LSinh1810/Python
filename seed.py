@@ -4,14 +4,13 @@ import random
 
 # Danh sách avatar mẫu (sử dụng hình ảnh có sẵn)
 sample_avatars = [
-    {"name": "Avatar mặc định", "image_url": "/static/images/default_avatar.png", "price": 0},
-    {"name": "Avatar 1", "image_url": "/static/images/avatar1.png", "price": 100},
-    {"name": "Avatar 2", "image_url": "/static/images/avatar2.png", "price": 200}
+    {"name": "Avatar 1", "image_url": "/static/images/avatar3.png", "price": 1000},
+    {"name": "Avatar 2", "image_url": "/static/images/avatar1.png", "price": 100},
+    {"name": "Avatar 3", "image_url": "/static/images/avatar2.png", "price": 200}
 ]
 
 # Danh sách skin mẫu (sử dụng icon có sẵn)
 sample_skins = [
-    {"name": "Icon mặc định", "image_url": "/static/images/default_avatar.png", "price": 0},
     {"name": "Icon 1", "image_url": "/static/images/icon1.png", "price": 150},
     {"name": "Icon 2", "image_url": "/static/images/icon2.png", "price": 250}
 ]
