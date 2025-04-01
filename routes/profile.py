@@ -63,27 +63,30 @@ def index():
 
 @profile_bp.route('/update_profile', methods=['POST'])
 def update_profile():
-    if 'user_id' not in session:
-        return redirect(url_for('home'))
+    # Kiểm tra cookie người dùng
+    user_id = request.cookies.get('user_id')
+    if not user_id:
+        return redirect(url_for('home.enter_name'))
     
     # Get form data
-    display_name = request.form.get('display_name')
+    display_name = request.form.get('displayName')
     
     # Validate display name
     if not display_name or len(display_name) < 3 or len(display_name) > 50:
-        flash('Display name must be between 3 and 50 characters')
+        flash('Tên hiển thị phải từ 3-50 ký tự')
         return redirect(url_for('profile.index'))
     
     # Update user
-    user = User.query.get(session['user_id'])
+    user = User.query.get(user_id)
     if user:
         user.displayName = display_name
         db.session.commit()
         
-        # Update session
-        session['display_name'] = display_name
-        
-        flash('Profile updated successfully')
+        # Update cookie
+        response = make_response(redirect(url_for('profile.index')))
+        response.set_cookie('display_name', display_name)
+        flash('Cập nhật hồ sơ thành công')
+        return response
     
     return redirect(url_for('profile.index'))
 
@@ -101,17 +104,23 @@ def change_avatar(avatar_id):
     ).first()
     
     if not user_avatar:
+        flash('Bạn chưa sở hữu avatar này')
         return redirect(url_for('profile.index'))
     
     # Lấy thông tin avatar
     avatar = Avatar.query.get(avatar_id)
     if not avatar:
+        flash('Avatar không tồn tại')
         return redirect(url_for('profile.index'))
     
     # Cập nhật avatar cho người dùng
     user = User.query.get(user_id)
-    user.avatar = avatar.image_url
-    db.session.commit()
+    if user:
+        user.avatar = avatar.image_url
+        db.session.commit()
+        flash('Đã cập nhật avatar thành công')
+    else:
+        flash('Không tìm thấy người dùng')
     
     return redirect(url_for('profile.index'))
 

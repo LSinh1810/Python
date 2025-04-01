@@ -19,10 +19,6 @@
             </div>
             
             <nav class="menu">
-                <a href="{{ url_for('home') }}" class="menu-item">
-                    <span class="icon">📜</span>
-                    <span>Lịch sử</span>
-                </a>
                 <a href="{{ url_for('home.index') }}" class="menu-item">
                     <span class="icon">🏠</span>
                     <span>Trang chủ</span>
@@ -30,6 +26,10 @@
                 <a href="{{ url_for('store.index') }}" class="menu-item">
                     <span class="icon">🎁</span>
                     <span>Vật phẩm</span>
+                </a>
+                <a href="{{ url_for('profile.index') }}" class="menu-item active">
+                    <span class="icon">👤</span>
+                    <span>Hồ sơ</span>
                 </a>
             </nav>
         </div>
@@ -41,8 +41,8 @@
                 
                 <form action="{{ url_for('profile.update_profile') }}" method="POST" class="profile-form">
                     <div class="form-group">
-                        <label for="username">Tên hiển thị</label>
-                        <input type="text" id="username" name="username" value="{{ user.username }}">
+                        <label for="displayName">Tên hiển thị</label>
+                        <input type="text" id="displayName" name="displayName" value="{{ user.displayName }}">
                     </div>
                     
                     <div class="form-group">
@@ -50,6 +50,29 @@
                         <div class="id-field">
                             <input type="text" id="user_id" value="{{ user.user_id }}" readonly>
                             <button type="button" class="copy-btn" onclick="copyUserId()">📋</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Avatar hiện tại</label>
+                        <div class="current-avatar">
+                            <img src="{{ url_for('static', filename=user.avatar if user.avatar else 'images/default_avatar.png') }}" alt="Current Avatar" class="avatar-preview">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Avatar đã mua</label>
+                        <div class="avatar-grid">
+                            {% if user_avatars %}
+                                {% for avatar in user_avatars %}
+                                <div class="avatar-item {% if user.avatar == avatar.image_url %}active{% endif %}">
+                                    <img src="{{ url_for('static', filename=avatar.image_url) }}" alt="Avatar {{ avatar.avatar_id }}">
+                                    <a href="{{ url_for('profile.change_avatar', avatar_id=avatar.avatar_id) }}" class="select-avatar">Chọn</a>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="no-items">Bạn chưa mua avatar nào. Hãy đến <a href="{{ url_for('store.index') }}">Cửa hàng</a> để mua avatar mới!</p>
+                            {% endif %}
                         </div>
                     </div>
                     
