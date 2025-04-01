@@ -134,7 +134,7 @@ def handle_chat(data):
 @pvp_bp.route('/give_up')
 def give_up():
     if 'user_id' not in session or 'game_id' not in session:
-        return redirect(url_for('home.login'))
+        return redirect(url_for('home.enter_name'))
     
     # Get game data
     game = Game.query.get(session['game_id'])
@@ -145,18 +145,18 @@ def give_up():
     game.status = 'cancelled'
     db.session.commit()
     
-    # Update leaderboard
-    update_leaderboard(session['user_id'], False)
+    # Emit game_over event to both players
+    socketio.emit('game_over', {'reason': 'Player gave up'}, room=f"game_{game.room_code}")
     
-    # If opponent exists, they win by forfeit
-    opponent_id = game.player2_id if game.player1_id == session['user_id'] else game.player1_id
-    if opponent_id:
-        update_leaderboard(opponent_id, True)
-    
-    # Notify other player through socket
-    socketio.emit('opponent_left', {
-        'player_id': session['user_id']
-    }, room=game.room_code)
+    # Update leaderboard for both players
+    if game.player1_id == session['user_id']:
+        # Current player is player 1, they lose and player 2 wins
+        update_leaderboard(game.player1_id, False)
+        update_leaderboard(game.player2_id, True)
+    else:
+        # Current player is player 2, they lose and player 1 wins
+        update_leaderboard(game.player1_id, True)
+        update_leaderboard(game.player2_id, False)
     
     return redirect(url_for('home.index'))
 

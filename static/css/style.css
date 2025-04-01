@@ -641,20 +641,18 @@ body {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.board-cell.player1::after {
-    content: '';
-    width: 60%;
-    height: 60%;
-    border-radius: 50%;
-    background-color: #ff5050;
+/* Thêm style mới cho X và O */
+.board-cell .move-symbol {
+    font-size: 24px;
+    font-weight: bold;
 }
 
-.board-cell.player2::after {
-    content: '';
-    width: 60%;
-    height: 60%;
-    border-radius: 50%;
-    background-color: #14cca8;
+.board-cell.player1 .move-symbol {
+    color: #ff5050;
+}
+
+.board-cell.player2 .move-symbol {
+    color: #14cca8;
 }
 
 /* Chat Area */

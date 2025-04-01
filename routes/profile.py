@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, session, request, flash, make_response
+from flask import Blueprint, render_template, redirect, url_for, session, request, flash, make_response, jsonify
 from models import User, Leaderboard, UserAvatar, Avatar, Skin, UserSkin
 from extensions import db
 from sqlalchemy import desc
@@ -208,18 +208,37 @@ def change_skin(skin_id):
 
 @profile_bp.route('/delete_account', methods=['POST'])
 def delete_account():
-    if 'user_id' not in session:
-        return redirect(url_for('home'))
+    # Lấy user_id từ cookie
+    user_id = request.cookies.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Không tìm thấy người dùng'}), 404
     
-    # Delete user
-    user = User.query.get(session['user_id'])
-    if user:
-        db.session.delete(user)
+    try:
+        # Xóa tất cả dữ liệu liên quan đến người dùng
+        # 1. Xóa các bản ghi trong UserSkin
+        UserSkin.query.filter_by(user_id=user_id).delete()
+        
+        # 2. Xóa các bản ghi trong UserAvatar
+        UserAvatar.query.filter_by(user_id=user_id).delete()
+        
+        # 3. Xóa bản ghi trong Leaderboard
+        Leaderboard.query.filter_by(user_id=user_id).delete()
+        
+        # 4. Xóa các game của người dùng (nếu có bảng Game)
+        if 'Game' in globals():
+            Game = globals()['Game']
+            Game.query.filter((Game.player1_id == user_id) | (Game.player2_id == user_id)).delete()
+        
+        # 5. Cuối cùng xóa người dùng
+        user = User.query.get(user_id)
+        if user:
+            db.session.delete(user)
+        
+        # Lưu các thay đổi
         db.session.commit()
         
-        # Clear session
-        session.clear()
-        
-        flash('Account deleted successfully')
-    
-    return redirect(url_for('home.login'))
+        return jsonify({'success': True, 'message': 'Tài khoản đã được xóa thành công'}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Lỗi khi xóa tài khoản: {str(e)}")
+        return jsonify({'success': False, 'message': 'Có lỗi xảy ra khi xóa tài khoản'}), 500

@@ -191,17 +191,30 @@
         
         document.getElementById('delete-btn').addEventListener('click', function() {
             if (confirm('Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.')) {
-                // Xóa tất cả cookies
-                const cookies = document.cookie.split(";");
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i];
-                    const eqPos = cookie.indexOf("=");
-                    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-                }
-                
-                // Chuyển hướng đến trang enter_name
-                window.location.href = "{{ url_for('home.enter_name') }}";
+                // Gửi request xóa tài khoản đến server
+                fetch('{{ url_for("profile.delete_account") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    // Sau khi xóa thành công, xóa cookies
+                    const cookies = document.cookie.split(";");
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i];
+                        const eqPos = cookie.indexOf("=");
+                        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                    }
+                    
+                    // Chuyển hướng đến trang enter_name
+                    window.location.href = "{{ url_for('home.enter_name') }}";
+                })
+                .catch(error => {
+                    console.error('Lỗi khi xóa tài khoản:', error);
+                    alert('Có lỗi xảy ra khi xóa tài khoản. Vui lòng thử lại sau.');
+                });
             }
         });
         

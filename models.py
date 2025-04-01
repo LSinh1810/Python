@@ -22,6 +22,9 @@ class Move(db.Model):
     game_id = db.Column(db.Integer, db.ForeignKey('games.game_id'))
     player_id = db.Column(db.String(10), db.ForeignKey('users.user_id'))
     position = db.Column(db.String(10), nullable=False)
+    move_order = db.Column(db.Integer, default=0)
+    position_x = db.Column(db.Integer, nullable=True)
+    position_y = db.Column(db.Integer, nullable=True)
 
 class Leaderboard(db.Model):
     rank_id = db.Column(db.Integer, primary_key=True)

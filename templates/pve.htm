@@ -3,39 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Play with Computer - Caro Game</title>
+    <title>Chơi với máy - Caro Game</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        /* Thêm CSS cho bộ đếm thời gian */
+        .timer-display {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 5px;
+            color: #444;
+        }
+        .timer-critical {
+            color: #f44336;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .move-symbol {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+        .player1 .move-symbol {
+            color: #2196F3;
+        }
+        .player2 .move-symbol {
+            color: #f44336;
+        }
+        /* Định dạng khung avatar */
+        .player-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .player-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .exit-confirmation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .confirmation-box {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            animation: scaleIn 0.3s ease-out;
+        }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0.9); }
+            to { transform: scale(1); }
+        }
+        
+        .confirmation-box h3 {
+            margin-top: 0;
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .confirmation-box p {
+            font-size: 16px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 0;
+        }
+        
+        .confirmation-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .confirmation-buttons button {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .confirmation-buttons .primary-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .confirmation-buttons .primary-btn:hover {
+            background-color: #3d9140;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .confirmation-buttons .secondary-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .confirmation-buttons .secondary-btn:hover {
+            background-color: #e53935;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
 <body>
     <div class="game-container">
         <div class="game-header">
-            <!-- Player 1 Info -->
+            <!-- Player Info -->
             <div class="player-info">
                 <div class="player-avatar player1">
-                    <img src="{{ url_for('static', filename='images/avatar_0.png') }}" alt="Player">
+                    <img src="{{ user.avatar if user.avatar else url_for('static', filename='images/default_avatar.png') }}" alt="Player">
                 </div>
                 <div class="player-details">
-                    <span class="player-name">{{ user.username }}</span>
-                    <span class="player-score">0/4:12</span>
+                    <span class="player-name">{{ user.displayName }}</span>
+                    <span class="timer-display" id="player-move-timer">0:30</span>
                 </div>
             </div>
             
             <!-- Center Info -->
             <div class="game-center-info">
                 <span class="coin-display">
-                    🪙 1.0
+                    🪙 {{ user.coins if user.coins else '0' }}
                 </span>
             </div>
             
-            <!-- Player 2 Info (Computer) -->
+            <!-- AI Info -->
             <div class="player-info right">
                 <div class="player-details">
-                    <span class="player-name">Robo Trí Cày</span>
-                    <span class="player-score">0/4:50</span>
+                    <span class="player-name">AI</span>
+                    <span class="timer-display" id="ai-move-timer">0:30</span>
                 </div>
                 <div class="player-avatar player2">
-                    <img src="{{ url_for('static', filename='images/robot_avatar.png') }}" alt="Computer">
+                    <img src="{{ url_for('static', filename='images/robot_avatar.png') }}" alt="AI">
                 </div>
             </div>
         </div>
@@ -47,35 +180,21 @@
         
         <!-- Game Controls -->
         <div class="game-controls">
-            <button class="give-up-btn">
+            <button class="give-up-btn" id="give-up-btn">
                 Từ bỏ
                 <span class="key-hint">Esc</span>
             </button>
         </div>
     </div>
     
-    <!-- Game Over Modal (Hidden by default) -->
-    <div class="game-over-modal" id="game-over-modal" style="display: none;">
-        <div class="modal-content">
-            <div class="winner-display">
-                <div class="progress-bar">
-                    <div class="progress" id="progress-bar"></div>
-                    <div class="avatar-indicator" id="winner-avatar">
-                        <img src="{{ url_for('static', filename='images/avatar_0.png') }}" alt="Winner">
-                    </div>
-                </div>
-                
-                <p class="game-result" id="game-result">Bạn đã thắng!</p>
-                
-                <div class="after-game-controls">
-                    <button class="btn primary-btn" id="play-again-btn">
-                        Chơi lại
-                        <span class="key-hint">↵ Enter</span>
-                    </button>
-                    <button class="btn secondary-btn" id="leave-room-btn">
-                        Rời khỏi phòng
-                    </button>
-                </div>
+    <!-- Exit Confirmation Modal (Hidden by default) -->
+    <div class="exit-confirmation" id="exit-confirmation" style="display: none;">
+        <div class="confirmation-box">
+            <h3>Bạn muốn thoát trò chơi?</h3>
+            <p>Nếu thoát bây giờ, bạn sẽ thua trận đấu này.</p>
+            <div class="confirmation-buttons">
+                <button class="btn primary-btn" id="stay-btn">Tiếp tục chơi</button>
+                <button class="btn secondary-btn" id="exit-btn">Thoát</button>
             </div>
         </div>
     </div>
@@ -83,12 +202,60 @@
     <script>
         // Connect to Socket.IO
         const socket = io();
-        const gameId = "{{ game_id }}";
+        const gameId = "{{ game.game_id }}";
         
         // Game state
         let board = Array(15).fill().map(() => Array(15).fill(0));
         let currentPlayer = 1;  // 1 for player, 2 for computer
         let gameOver = false;
+        
+        // Timer variables
+        let moveSeconds = 30; // 30 seconds per move
+        let moveTimerInterval;
+        
+        // Initialize the game
+        function initGame() {
+            // Initialize board
+            initBoard();
+            
+            // Reset board array 
+            board = Array(15).fill().map(() => Array(15).fill(0));
+            
+            // Load existing moves if any
+            {% if moves %}
+                {% for move in moves %}
+                    // Kiểm tra xem move có position_x và position_y không
+                    {% if move.position_x is not none and move.position_y is not none %}
+                        board[{{ move.position_y }}][{{ move.position_x }}] = {{ "1" if move.player_id else "2" }};
+                    {% endif %}
+                {% endfor %}
+                updateBoardUI();
+                // Set current player based on last move
+                {% if moves|length % 2 == 0 %}
+                    currentPlayer = 1;
+                {% else %}
+                    currentPlayer = 2;
+                {% endif %}
+            {% endif %}
+            
+            // Debug: Log board state
+            console.log("Initial board state:", JSON.parse(JSON.stringify(board)));
+            
+            // Start timers
+            startTimers();
+            
+            // Set up exit confirmation
+            document.getElementById('give-up-btn').addEventListener('click', showExitConfirmation);
+            document.getElementById('stay-btn').addEventListener('click', hideExitConfirmation);
+            document.getElementById('exit-btn').addEventListener('click', exitGame);
+            
+            // Handle ESC key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    showExitConfirmation();
+                }
+            });
+        }
         
         // Initialize the game board
         function initBoard() {
@@ -113,178 +280,226 @@
                 return;
             }
             
+            console.log(`Making move at (${x}, ${y})`);
+            
             // Update the board
             board[y][x] = 1;
-            updateBoardUI();
             
-            // Check for win
-            if (checkWin(x, y, 1)) {
-                gameOver = true;
-                showGameOver(1);
-                return;
-            }
+            // Xóa mọi nội dung trong ô trước khi cập nhật
+            const index = y * 15 + x;
+            const cell = document.querySelectorAll('.board-cell')[index];
+            cell.className = 'board-cell';
+            cell.innerHTML = '';
             
-            // Switch to computer's turn
+            // Thêm X vào ô
+            cell.classList.add('player1');
+            const symbol = document.createElement('div');
+            symbol.className = 'move-symbol';
+            symbol.textContent = 'X';
+            cell.appendChild(symbol);
+            
+            // Chuyển lượt đi sang AI
             currentPlayer = 2;
             
-            // Get computer move
-            setTimeout(() => {
-                socket.emit('ai_move', {game_id: gameId, board: board}, (response) => {
-                    const {x, y, winner} = response;
-                    
+            // Reset move timer
+            moveSeconds = 30;
+            updateMoveTimer();
+            
+            // Send move to server, gửi luôn bảng cờ hiện tại
+            fetch('/make_move', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    x: x,
+                    y: y,
+                    game_id: gameId,
+                    board: board
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Server response:", data);
+                
+                if (data.status === 'win') {
+                    gameOver = true;
+                    stopTimers();
+                    window.location.href = `/after_game/${gameId}`;
+                    return;
+                }
+                
+                if (data.ai_move) {
                     // Update the board with computer's move
-                    board[y][x] = 2;
-                    updateBoardUI();
+                    const ai_x = data.ai_move.x;
+                    const ai_y = data.ai_move.y;
+                    console.log(`AI move at (${ai_x}, ${ai_y})`);
                     
-                    if (winner) {
+                    board[ai_y][ai_x] = 2;
+                    
+                    // Xóa mọi nội dung trong ô trước khi cập nhật
+                    const ai_index = ai_y * 15 + ai_x;
+                    const ai_cell = document.querySelectorAll('.board-cell')[ai_index];
+                    ai_cell.className = 'board-cell';
+                    ai_cell.innerHTML = '';
+                    
+                    // Thêm O vào ô
+                    ai_cell.classList.add('player2');
+                    const ai_symbol = document.createElement('div');
+                    ai_symbol.className = 'move-symbol';
+                    ai_symbol.textContent = 'O';
+                    ai_cell.appendChild(ai_symbol);
+                    
+                    // Chuyển lượt đi về người chơi
+                    currentPlayer = 1;
+                    
+                    // Debug: Log board state after AI move
+                    console.log("Board state after AI move:", JSON.parse(JSON.stringify(board)));
+                    
+                    // Reset move timer for player's next turn
+                    moveSeconds = 30;
+                    updateMoveTimer();
+                    
+                    if (data.status === 'lose') {
                         gameOver = true;
-                        showGameOver(2);
-                    } else {
-                        // Switch back to player's turn
-                        currentPlayer = 1;
+                        stopTimers();
+                        window.location.href = `/after_game/${gameId}`;
                     }
-                });
-            }, 500);  // Small delay for better UX
+                } else if (data.status === 'error') {
+                    // Xử lý lỗi
+                    console.error('Error from server:', data.message);
+                    alert('Có lỗi xảy ra: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi kết nối: ' + error);
+            });
         }
         
         // Update the UI to reflect the current board state
         function updateBoardUI() {
             const cells = document.querySelectorAll('.board-cell');
             
+            console.log("Updating board UI with state:", JSON.parse(JSON.stringify(board)));
+            
+            // Xóa tất cả nội dung và style trước khi cập nhật UI
             for (let y = 0; y < 15; y++) {
                 for (let x = 0; x < 15; x++) {
                     const index = y * 15 + x;
                     cells[index].className = 'board-cell';
+                    cells[index].innerHTML = '';
+                }
+            }
+            
+            // Sau đó mới thêm nội dung mới
+            for (let y = 0; y < 15; y++) {
+                for (let x = 0; x < 15; x++) {
+                    const index = y * 15 + x;
                     
                     if (board[y][x] === 1) {
+                        console.log(`Cell (${x}, ${y}) marked as X`);
                         cells[index].classList.add('player1');
+                        const symbol = document.createElement('div');
+                        symbol.className = 'move-symbol';
+                        symbol.textContent = 'X';
+                        cells[index].appendChild(symbol);
                     } else if (board[y][x] === 2) {
+                        console.log(`Cell (${x}, ${y}) marked as O`);
                         cells[index].classList.add('player2');
+                        const symbol = document.createElement('div');
+                        symbol.className = 'move-symbol';
+                        symbol.textContent = 'O';
+                        cells[index].appendChild(symbol);
                     }
                 }
             }
         }
         
-        // Check for win
-        function checkWin(x, y, player) {
-            const directions = [
-                [[0, 1], [0, -1]],   // Vertical
-                [[1, 0], [-1, 0]],   // Horizontal
-                [[1, 1], [-1, -1]],  // Diagonal /
-                [[1, -1], [-1, 1]]   // Diagonal \
-            ];
+        // Timer functions
+        function startTimers() {
+            // Update immediately
+            updateMoveTimer();
             
-            for (const dirPair of directions) {
-                let count = 1;  // Count the piece we just placed
-                
-                // Check in both directions
-                for (const [dx, dy] of dirPair) {
-                    let nx = x;
-                    let ny = y;
-                    
-                    // Count consecutive pieces in this direction
-                    for (let i = 0; i < 4; i++) {  // Need 4 more to make 5 in a row
-                        nx += dx;
-                        ny += dy;
-                        if (0 <= nx && nx < 15 && 0 <= ny && ny < 15 && board[ny][nx] === player) {
-                            count++;
-                        } else {
-                            break;
+            // Set intervals
+            moveTimerInterval = setInterval(function() {
+                if (!gameOver) {
+                    // Giảm thời gian cho người chơi hiện tại
+                    if (currentPlayer === 1) {
+                        // Người chơi đang đi
+                        moveSeconds--;
+                        updateMoveTimer();
+                        
+                        if (moveSeconds <= 0) {
+                            endGameOnTimeOut();
+                        }
+                    } else {
+                        // AI đang đi (giả lập thời gian AI suy nghĩ)
+                        moveSeconds--;
+                        updateMoveTimer();
+                        
+                        if (moveSeconds <= 0) {
+                            // Nếu hết thời gian AI, coi như AI thua (điều này hiếm khi xảy ra)
+                            endGameOnTimeOut();
                         }
                     }
                 }
-                
-                if (count >= 5) {
-                    return true;
-                }
-            }
-            
-            return false;
+            }, 1000);
         }
         
-        // Show game over screen
-        function showGameOver(winner) {
-            const modal = document.getElementById('game-over-modal');
-            const result = document.getElementById('game-result');
-            const progressBar = document.getElementById('progress-bar');
-            const winnerAvatar = document.getElementById('winner-avatar');
+        function stopTimers() {
+            clearInterval(moveTimerInterval);
+        }
+        
+        function updateMoveTimer() {
+            const timerDisplay = currentPlayer === 1 ? 
+                document.getElementById('player-move-timer') : 
+                document.getElementById('ai-move-timer');
             
-            if (winner === 1) {
-                result.textContent = 'Bạn đã thắng!';
-                progressBar.style.width = '70%';
-                winnerAvatar.querySelector('img').src = "{{ url_for('static', filename='images/avatar_0.png') }}";
+            timerDisplay.textContent = `0:${moveSeconds.toString().padStart(2, '0')}`;
+            
+            if (moveSeconds <= 10) {
+                timerDisplay.classList.add('timer-critical');
             } else {
-                result.textContent = 'Bạn đã thua!';
-                progressBar.style.width = '30%';
-                winnerAvatar.querySelector('img').src = "{{ url_for('static', filename='images/robot_avatar.png') }}";
+                timerDisplay.classList.remove('timer-critical');
             }
             
-            modal.style.display = 'flex';
+            // Reset the other player's move timer display
+            const otherTimerDisplay = currentPlayer === 1 ? 
+                document.getElementById('ai-move-timer') : 
+                document.getElementById('player-move-timer');
+            otherTimerDisplay.textContent = "0:30";
+            otherTimerDisplay.classList.remove('timer-critical');
         }
         
-        // Reset the game
-        function resetGame() {
-            board = Array(15).fill().map(() => Array(15).fill(0));
-            currentPlayer = Math.random() < 0.5 ? 1 : 2;
-            gameOver = false;
+        function endGameOnTimeOut() {
+            gameOver = true;
+            stopTimers();
             
-            updateBoardUI();
-            
-            const modal = document.getElementById('game-over-modal');
-            modal.style.display = 'none';
-            
-            // If computer starts, get its move
-            if (currentPlayer === 2) {
-                setTimeout(() => {
-                    socket.emit('ai_move', {game_id: gameId, board: board}, (response) => {
-                        const {x, y} = response;
-                        
-                        // Update the board with computer's move
-                        board[y][x] = 2;
-                        updateBoardUI();
-                        
-                        // Switch to player's turn
-                        currentPlayer = 1;
-                    });
-                }, 500);
-            }
+            // Send timeout info to server
+            fetch('/give_up', {
+                method: 'GET'
+            })
+            .then(() => {
+                window.location.href = `/after_game/${gameId}`;
+            });
         }
         
-        // Event listeners
-        document.getElementById('play-again-btn').addEventListener('click', resetGame);
-        document.getElementById('leave-room-btn').addEventListener('click', () => {
-            if (confirm('Bạn có chắc chắn muốn rời khỏi phòng?')) {
-                window.location.href = "{{ url_for('home.index') }}";
-            }
-        });
-        
-        document.querySelector('.give-up-btn').addEventListener('click', () => {
-            if (confirm('Bạn có chắc chắn muốn từ bỏ?')) {
-                window.location.href = "{{ url_for('home.index') }}";
-            }
-        });
-        
-        // Initialize the game
-        initBoard();
-        
-        // Randomly decide who goes first
-        if (Math.random() < 0.5) {
-            currentPlayer = 2;
-            
-            // Computer makes the first move
-            setTimeout(() => {
-                socket.emit('ai_move', {game_id: gameId, board: board}, (response) => {
-                    const {x, y} = response;
-                    
-                    // Update the board with computer's move
-                    board[y][x] = 2;
-                    updateBoardUI();
-                    
-                    // Switch to player's turn
-                    currentPlayer = 1;
-                });
-            }, 500);
+        // Exit confirmation functions
+        function showExitConfirmation() {
+            document.getElementById('exit-confirmation').style.display = 'flex';
         }
+        
+        function hideExitConfirmation() {
+            document.getElementById('exit-confirmation').style.display = 'none';
+        }
+        
+        function exitGame() {
+            window.location.href = '/';
+        }
+        
+        // Initialize game when page loads
+        window.onload = initGame;
     </script>
 </body>
 </html>

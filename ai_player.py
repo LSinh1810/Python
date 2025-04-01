@@ -11,73 +11,84 @@ class AIPlayer:
         board: 2D list representing the game board (0 = empty, 1 = player 1, 2 = player 2)
         returns: (x, y) coordinates of the AI move
         """
-        # Convert the board to numpy array for easier manipulation
-        np_board = np.array(board)
-        
-        # If this is the first move or second move, place near the center
-        total_moves = np.count_nonzero(np_board)
-        if total_moves == 0:
-            # First move - play at the center
-            return (7, 7)
-        
-        if total_moves == 1:
-            # Second move - play adjacent to the player's move
-            player_x, player_y = np.where(np_board == 1)
-            if len(player_x) > 0:
-                px, py = player_x[0], player_y[0]
-                moves = []
-                for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
-                    nx, ny = px + dx, py + dy
-                    if 0 <= nx < self.size and 0 <= ny < self.size and np_board[nx, ny] == 0:
-                        moves.append((nx, ny))
-                if moves:
-                    return random.choice(moves)
-        
-        # Defense first - check if player is about to win and block
-        for i in range(self.size):
-            for j in range(self.size):
-                if np_board[i, j] == 0:  # Empty position
-                    # Check if player would win by placing here
-                    np_board[i, j] = 1
-                    if self._check_win(np_board, j, i, 1):
-                        np_board[i, j] = 0  # Restore the board
-                        return (j, i)  # Block the player
-                    np_board[i, j] = 0  # Restore the board
-        
-        # Offense - check if AI can win in the next move
-        for i in range(self.size):
-            for j in range(self.size):
-                if np_board[i, j] == 0:  # Empty position
-                    # Check if AI would win by placing here
-                    np_board[i, j] = 2
-                    if self._check_win(np_board, j, i, 2):
-                        np_board[i, j] = 0  # Restore the board
-                        return (j, i)  # Winning move
-                    np_board[i, j] = 0  # Restore the board
-        
-        # Evaluate each empty position and choose the best
-        best_score = -float('inf')
-        best_move = None
-        
-        for i in range(self.size):
-            for j in range(self.size):
-                if np_board[i, j] == 0:  # Empty position
-                    # Score this position
-                    score = self._score_position(np_board, j, i)
-                    if score > best_score:
-                        best_score = score
-                        best_move = (j, i)
-        
-        # If no good move found, choose a random empty cell
-        if best_move is None:
-            empty_positions = [(j, i) for i in range(self.size) for j in range(self.size) if np_board[i, j] == 0]
-            if empty_positions:
-                best_move = random.choice(empty_positions)
-            else:
-                # No empty positions left - should not happen
+        try:
+            # Convert the board to numpy array for easier manipulation
+            np_board = np.array(board)
+            
+            # Nếu đây là nước đi đầu tiên, đặt ở trung tâm hoặc gần trung tâm
+            total_moves = np.count_nonzero(np_board)
+            if total_moves == 0:
+                center_moves = [(7,7), (6,6), (6,7), (6,8), (7,6), (7,8), (8,6), (8,7), (8,8)]
+                return random.choice(center_moves)
+            
+            # Kiểm tra nước đi chiến thắng ngay lập tức cho AI
+            for i in range(self.size):
+                for j in range(self.size):
+                    if np_board[i, j] == 0:
+                        np_board[i, j] = 2
+                        if self._check_win(np_board, j, i, 2):
+                            np_board[i, j] = 0
+                            return (j, i)
+                        np_board[i, j] = 0
+            
+            # Chặn nước đi chiến thắng và các nước đi nguy hiểm của người chơi
+            for i in range(self.size):
+                for j in range(self.size):
+                    if np_board[i, j] == 0:
+                        # Kiểm tra nước đi chiến thắng của người chơi
+                        np_board[i, j] = 1
+                        if self._check_win(np_board, j, i, 1):
+                            np_board[i, j] = 0
+                            return (j, i)
+                        
+                        # Kiểm tra các nước đi nguy hiểm
+                        threat_score = self._evaluate_threat(np_board, j, i, 1)
+                        if threat_score >= 1000:
+                            np_board[i, j] = 0
+                            return (j, i)
+                            
+                        np_board[i, j] = 0
+            
+            # Tìm nước đi tấn công tốt nhất
+            best_score = -float('inf')
+            best_moves = []
+            
+            valid_moves = self._get_valid_moves(np_board)
+            
+            if not valid_moves:
+                empty_cells = [(j, i) for i in range(self.size) for j in range(self.size) if np_board[i, j] == 0]
+                if empty_cells:
+                    return random.choice(empty_cells)
                 return (0, 0)
-        
-        return best_move
+            
+            # Đánh giá từng nước đi hợp lệ với trọng số khác nhau
+            for x, y in valid_moves:
+                np_board[y, x] = 2
+                attack_score = self._evaluate_position(np_board, x, y, 2) * 1.2  # Tăng trọng số tấn công
+                defense_score = self._evaluate_threat(np_board, x, y, 1) * 1.8   # Tăng trọng số phòng thủ
+                position_score = self._evaluate_position_quality(x, y) * 1.5      # Đánh giá chất lượng vị trí
+                total_score = attack_score + defense_score + position_score
+                np_board[y, x] = 0
+                
+                if total_score > best_score:
+                    best_score = total_score
+                    best_moves = [(x, y)]
+                elif total_score == best_score:
+                    best_moves.append((x, y))
+            
+            if best_moves:
+                # Chọn ngẫu nhiên từ các nước đi tốt nhất để tăng tính không thể đoán trước
+                return random.choice(best_moves)
+            
+            # Nếu không tìm được nước đi tốt, chọn ngẫu nhiên từ các nước đi hợp lệ
+            return random.choice(valid_moves)
+            
+        except Exception as e:
+            print(f"Error in AI get_move: {str(e)}")
+            empty_cells = [(j, i) for i in range(self.size) for j in range(self.size) if board[i][j] == 0]
+            if empty_cells:
+                return random.choice(empty_cells)
+            return (0, 0)
     
     def _check_win(self, board, x, y, player):
         """Check if a move at (x, y) by player would win the game"""
@@ -89,14 +100,12 @@ class AIPlayer:
         ]
         
         for dir_pair in directions:
-            count = 1  # Count the piece we just placed
+            count = 1
             
-            # Check in both directions
             for dx, dy in dir_pair:
                 nx, ny = x, y
                 
-                # Count consecutive pieces in this direction
-                for _ in range(4):  # Need 4 more to make 5 in a row
+                for _ in range(4):
                     nx, ny = nx + dx, ny + dy
                     if (0 <= nx < self.size and 0 <= ny < self.size and 
                         board[ny, nx] == player):
@@ -109,15 +118,37 @@ class AIPlayer:
         
         return False
     
-    def _score_position(self, board, x, y, player=2):
-        """
-        Evaluate the score of placing at position (x, y)
-        Higher score means better position
-        """
-        # Base score
-        score = 0
+    def _get_valid_moves(self, board):
+        """Get list of valid moves (empty cells adjacent to existing pieces)"""
+        valid_moves = []
+        for i in range(self.size):
+            for j in range(self.size):
+                if board[i, j] != 0:
+                    for di in [-2, -1, 0, 1, 2]:
+                        for dj in [-2, -1, 0, 1, 2]:
+                            if di == 0 and dj == 0:
+                                continue
+                            
+                            ni, nj = i + di, j + dj
+                            if (0 <= ni < self.size and 0 <= nj < self.size and 
+                                board[ni, nj] == 0 and (nj, ni) not in valid_moves):
+                                valid_moves.append((nj, ni))
         
-        # Check all directions
+        if not valid_moves and np.count_nonzero(board) > 0:
+            center = self.size // 2
+            for di in range(-3, 4):
+                for dj in range(-3, 4):
+                    ni, nj = center + di, center + dj
+                    if (0 <= ni < self.size and 0 <= nj < self.size and board[ni, nj] == 0):
+                        return [(nj, ni)]
+        
+        return valid_moves
+    
+    def _evaluate_position(self, board, x, y, player):
+        """Evaluate the value of a position for a player"""
+        score = 0
+        opponent = 1 if player == 2 else 2
+        
         directions = [
             [(0, 1), (0, -1)],   # Vertical
             [(1, 0), (-1, 0)],   # Horizontal
@@ -126,66 +157,108 @@ class AIPlayer:
         ]
         
         for dir_pair in directions:
-            # Score for AI (player 2)
-            ai_score = self._count_sequence(board, x, y, dir_pair, 2)
-            score += ai_score * ai_score  # Square to prioritize longer sequences
+            my_count = 1
+            opponent_count = 0
+            empty_count = 0
             
-            # Score for blocking player (player 1)
-            player_score = self._count_sequence(board, x, y, dir_pair, 1)
-            score += player_score * player_score * 0.9  # Slightly less weight for defense
+            for dx, dy in dir_pair:
+                for step in range(1, 5):
+                    nx, ny = x + dx * step, y + dy * step
+                    if 0 <= nx < self.size and 0 <= ny < self.size:
+                        if board[ny, nx] == player:
+                            my_count += 1
+                        elif board[ny, nx] == 0:
+                            empty_count += 1
+                            break
+                        else:
+                            opponent_count += 1
+                            break
+                    else:
+                        break
+            
+            if opponent_count == 0:
+                if my_count >= 5:
+                    score += 200000  # Tăng điểm cho nước thắng
+                elif my_count == 4:
+                    score += 20000   # Tăng điểm cho 4 quân
+                elif my_count == 3:
+                    score += 2000    # Tăng điểm cho 3 quân
+                elif my_count == 2:
+                    score += 200     # Tăng điểm cho 2 quân
+            elif opponent_count == 1:
+                if my_count >= 4:
+                    score += 2000
+                elif my_count == 3:
+                    score += 200
+                elif my_count == 2:
+                    score += 20
         
-        # Bonus for central positions (center control is strategically valuable)
-        center_x, center_y = self.size // 2, self.size // 2
-        distance_from_center = abs(x - center_x) + abs(y - center_y)
-        score += max(0, (self.size - distance_from_center) / 2)
+        center = self.size // 2
+        distance_from_center = abs(x - center) + abs(y - center)
+        score += (self.size - distance_from_center) * 3  # Tăng ưu tiên vị trí trung tâm
         
         return score
-    
-    def _count_sequence(self, board, x, y, dir_pair, player):
-        """
-        Count the potential sequence length in a direction if we place at (x, y)
-        """
-        max_count = 1  # The piece we would place
-        open_ends = 0  # Number of open ends (good for future growth)
+
+    def _evaluate_threat(self, board, x, y, player):
+        """Đánh giá mức độ nguy hiểm của một vị trí cho người chơi"""
+        score = 0
+        directions = [
+            [(0, 1), (0, -1)],   # Vertical
+            [(1, 0), (-1, 0)],   # Horizontal
+            [(1, 1), (-1, -1)],  # Diagonal /
+            [(1, -1), (-1, 1)]   # Diagonal \
+        ]
         
-        # Temporarily place the piece
-        board[y, x] = player
-        
-        # Check in both directions
-        for dx, dy in dir_pair:
-            count = 1  # Start with 1 for the piece at (x, y)
-            nx, ny = x, y
-            is_open_end = True
+        for dir_pair in directions:
+            player_count = 1
+            empty_before = 0
+            empty_after = 0
             
-            # Count in this direction
-            for _ in range(4):  # We need at most 4 more to make 5
-                nx, ny = nx + dx, ny + dy
-                if 0 <= nx < self.size and 0 <= ny < self.size:
-                    if board[ny, nx] == player:
-                        count += 1
-                    elif board[ny, nx] == 0:
-                        # Open end
-                        open_ends += 1
-                        break
+            for dx, dy in dir_pair:
+                nx, ny = x, y
+                for step in range(1, 5):
+                    nx, ny = nx + dx, ny + dy
+                    if 0 <= nx < self.size and 0 <= ny < self.size:
+                        if board[ny, nx] == player:
+                            player_count += 1
+                        elif board[ny, nx] == 0:
+                            if step == 1:
+                                empty_before += 1
+                            else:
+                                empty_after += 1
+                            break
+                        else:
+                            break
                     else:
-                        # Blocked by opponent
-                        is_open_end = False
                         break
-                else:
-                    # Out of bounds
-                    is_open_end = False
-                    break
             
-            if is_open_end and count > max_count:
-                max_count = count
+            if player_count >= 4 and (empty_before > 0 or empty_after > 0):
+                score += 10000  # Tăng điểm cho đe dọa chiến thắng
+            elif player_count == 3 and empty_before > 0 and empty_after > 0:
+                score += 2000   # Tăng điểm cho khả năng tạo thành 4 quân
+            elif player_count == 2 and empty_before > 0 and empty_after > 0:
+                score += 200    # Tăng điểm cho khả năng tạo thành 3 quân
         
-        # Remove the temporary piece
-        board[y, x] = 0
+        return score
         
-        # Adjust score based on open ends
-        if open_ends == 2:
-            max_count *= 1.5  # Two open ends is very good
-        elif open_ends == 1:
-            max_count *= 1.2  # One open end is good
+    def _evaluate_position_quality(self, x, y):
+        """Đánh giá chất lượng của một vị trí dựa trên các yếu tố chiến thuật"""
+        score = 0
+        center = self.size // 2
         
-        return max_count
+        # Ưu tiên các vị trí gần trung tâm
+        distance = abs(x - center) + abs(y - center)
+        score += (self.size - distance) * 5
+        
+        # Ưu tiên các vị trí tạo thành hình mẫu chiến thuật
+        if 3 <= x <= 11 and 3 <= y <= 11:
+            score += 100  # Khu vực chiến lược
+            
+        # Ưu tiên các góc phần tư
+        if (x < center and y < center) or \
+           (x < center and y > center) or \
+           (x > center and y < center) or \
+           (x > center and y > center):
+            score += 50
+            
+        return score

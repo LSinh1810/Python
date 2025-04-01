@@ -153,34 +153,49 @@
         .modal-content {
             background-color: #fff;
             margin: 15% auto;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 25px;
+            border-radius: 12px;
             max-width: 400px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
             position: relative;
+            text-align: center;
+            animation: modalFadeIn 0.3s;
+        }
+        
+        @keyframes modalFadeIn {
+            from {opacity: 0; transform: translateY(-20px);}
+            to {opacity: 1; transform: translateY(0);}
         }
         
         .modal-title {
             margin-top: 0;
             color: #333;
+            font-size: 22px;
+            margin-bottom: 15px;
         }
         
         .modal-message {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             font-size: 16px;
+            line-height: 1.5;
+            color: #555;
         }
         
         .modal-buttons {
             display: flex;
-            justify-content: flex-end;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
         }
         
         .modal-btn {
-            padding: 8px 15px;
-            margin-left: 10px;
+            padding: 10px 25px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.2s;
         }
         
         .confirm-btn {
@@ -188,9 +203,28 @@
             color: white;
         }
         
+        .confirm-btn:hover {
+            background: #3d9140;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
         .cancel-btn {
             background: #f44336;
             color: white;
+        }
+        
+        .cancel-btn:hover {
+            background: #e53935;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .modal-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
         
         .loading {
@@ -302,7 +336,7 @@
         </div>
     </div>
     
-    <!-- Confirmation Modal -->
+    <!-- Notification Modal -->
     <div id="confirmModal" class="modal">
         <div class="modal-content">
             <h3 class="modal-title">Xác nhận mua hàng</h3>
@@ -339,48 +373,15 @@
             });
         }
         
-        // Gán sự kiện cho tất cả nút mua
-        document.querySelectorAll('.buy-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const type = this.dataset.type;
-                const id = this.dataset.id;
-                const price = this.dataset.price;
-                const name = this.dataset.name;
-                
-                // Lưu trữ thông tin sản phẩm
-                currentItemData = { type, id, price, name };
-                
-                // Hiển thị thông báo xác nhận
-                modalMessage.textContent = `Bạn có muốn mua ${type === 'avatar' ? 'avatar' : 'icon'} "${name}" với giá ${price} coins không?`;
-                
-                // Hiển thị modal
-                modal.style.display = 'block';
-            });
-        });
-        
-        // Sự kiện khi nhấn nút "Không"
-        cancelBtn.addEventListener('click', function() {
-            modal.style.display = 'none';
-        });
-        
-        // Khi người dùng nhấp vào bất kỳ đâu bên ngoài modal, đóng nó
-        window.addEventListener('click', function(event) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-        
-        // Sự kiện khi nhấn nút "Có"
-        confirmBtn.addEventListener('click', function() {
-            if (!currentItemData) return;
-            
+        // Hàm mua hàng
+        function buyItem(type, id, button) {
             // Hiển thị spinner loading
+            loadingSpinner.style.display = 'block';
             confirmBtn.disabled = true;
             cancelBtn.disabled = true;
-            loadingSpinner.style.display = 'block';
             
             // Gửi yêu cầu mua hàng
-            fetch(`/buy_item/${currentItemData.type}/${currentItemData.id}`, {
+            fetch(`/buy_item/${type}/${id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -392,41 +393,32 @@
                 loadingSpinner.style.display = 'none';
                 
                 if (data.success) {
-                    // Thông báo thành công
-                    alert(data.message || 'Mua hàng thành công!');
-                    
                     // Cập nhật số tiền hiển thị nếu có
-                    if (data.remaining_coins !== undefined) {
-                        updateCoinDisplay(data.remaining_coins);
+                    if (data.coins !== undefined) {
+                        updateCoinDisplay(data.coins);
                     }
                     
                     // Đánh dấu sản phẩm đã mua mà không tải lại trang
-                    const itemType = currentItemData.type;
-                    const itemId = currentItemData.id;
-                    const selector = `.store-item .buy-btn[data-type="${itemType}"][data-id="${itemId}"]`;
-                    const buyButton = document.querySelector(selector);
+                    const itemContainer = button.closest('.store-item');
+                    // Thêm class 'owned' cho container
+                    itemContainer.classList.add('owned');
                     
-                    if (buyButton) {
-                        const itemContainer = buyButton.closest('.store-item');
-                        // Thêm class 'owned' cho container
-                        itemContainer.classList.add('owned');
-                        
-                        // Tìm phần tử giá tiền để thay đổi
-                        const priceContainer = buyButton.closest('.item-price');
-                        
-                        // Xóa giá tiền và nút mua
-                        priceContainer.innerHTML = '<span class="owned-label">Đã sở hữu</span>';
-                    }
+                    // Tìm phần tử giá tiền để thay đổi
+                    const priceContainer = button.closest('.item-price');
                     
-                    // Đóng modal
-                    modal.style.display = 'none';
+                    // Xóa giá tiền và nút mua
+                    priceContainer.innerHTML = '<span class="owned-label">Đã sở hữu</span>';
                     
-                    // Khôi phục các nút
-                    confirmBtn.disabled = false;
-                    cancelBtn.disabled = false;
+                    // Hiển thị thông báo thành công
+                    modalMessage.textContent = data.message || 'Mua hàng thành công!';
+                    
+                    // Đóng modal sau 1.5 giây
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                    }, 1500);
                 } else {
                     // Thông báo lỗi
-                    alert(data.message || 'Không thể mua. Vui lòng thử lại sau.');
+                    modalMessage.textContent = data.message || 'Không thể mua. Vui lòng thử lại sau.';
                     
                     // Khôi phục các nút
                     confirmBtn.disabled = false;
@@ -438,12 +430,54 @@
                 
                 // Ẩn spinner loading và hiển thị lỗi
                 loadingSpinner.style.display = 'none';
-                alert('Đã xảy ra lỗi. Vui lòng thử lại sau.');
+                modalMessage.textContent = 'Đã xảy ra lỗi. Vui lòng thử lại sau.';
                 
                 // Khôi phục các nút
                 confirmBtn.disabled = false;
                 cancelBtn.disabled = false;
             });
+        }
+        
+        // Gán sự kiện cho tất cả nút mua
+        document.querySelectorAll('.buy-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const type = this.dataset.type;
+                const id = this.dataset.id;
+                const price = this.dataset.price;
+                const name = this.dataset.name;
+                
+                // Lưu trữ thông tin sản phẩm và nút hiện tại
+                currentItemData = { type, id, price, name, button: this };
+                
+                // Hiển thị thông báo xác nhận
+                modalMessage.textContent = `Bạn có muốn mua ${type === 'avatar' ? 'avatar' : 'icon'} "${name}" với giá ${price} coins không?`;
+                
+                // Hiển thị modal
+                modal.style.display = 'block';
+                
+                // Reset trạng thái spinner và nút
+                loadingSpinner.style.display = 'none';
+                confirmBtn.disabled = false;
+                cancelBtn.disabled = false;
+            });
+        });
+        
+        // Sự kiện khi nhấn nút "Không"
+        cancelBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        
+        // Sự kiện khi nhấn nút "Có"
+        confirmBtn.addEventListener('click', function() {
+            if (!currentItemData) return;
+            buyItem(currentItemData.type, currentItemData.id, currentItemData.button);
+        });
+        
+        // Khi người dùng nhấp vào bất kỳ đâu bên ngoài modal, đóng nó
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
         });
     </script>
 </body>

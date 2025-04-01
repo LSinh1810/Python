@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kết thúc trò chơi - Caro Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .after-game-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #14202e;
+        }
+        
+        .game-result-box {
+            background-color: #1c2c40;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .game-logo {
+            margin-bottom: 20px;
+        }
+        
+        .game-logo img {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .result-info {
+            margin-bottom: 30px;
+        }
+        
+        .winner-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .winner-display h2 {
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: #14cca8;
+        }
+        
+        .winner-avatar {
+            width: 100px; /* Giảm kích thước avatar */
+            height: 100px; /* Giảm kích thước avatar */
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid #14cca8;
+            margin-bottom: 15px;
+        }
+        
+        .ai-win h2 {
+            color: #ff5050;
+        }
+        
+        .ai-win .winner-avatar {
+            border-color: #ff5050;
+        }
+        
+        .winner-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .after-game-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        
+        .primary-btn {
+            background-color: #14cca8;
+            color: white;
+        }
+        
+        .secondary-btn {
+            background-color: #2a3a51;
+            color: white;
+        }
+        
+        .key-hint {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            padding: 2px 5px;
+            margin-left: 5px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="after-game-container">
+        <div class="game-result-box">
+            <div class="game-logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Caro Game Logo">
+            </div>
+            
+            <div class="result-info">
+                {% if game.winner_id == user.user_id %}
+                    <div class="winner-display">
+                        <h2>Chúc mừng!</h2>
+                        <div class="winner-avatar">
+                            <img src="{{ user.avatar }}" alt="Avatar">
+                        </div>
+                        <p>Bạn đã chiến thắng!</p>
+                    </div>
+                {% elif game.winner_id is none and game.status == 'finished' %}
+                    <div class="winner-display ai-win">
+                        <h2>Rất tiếc!</h2>
+                        <div class="winner-avatar">
+                            <img src="{{ url_for('static', filename='images/robot_avatar.png') }}" alt="AI">
+                        </div>
+                        <p>AI đã chiến thắng!</p>
+                    </div>
+                {% elif game.status == 'cancelled' %}
+                    <div class="cancelled-display">
+                        <h2>Trò chơi đã kết thúc</h2>
+                        <p>Trò chơi đã bị hủy</p>
+                    </div>
+                {% else %}
+                    <div class="winner-display">
+                        <h2>Kết thúc trò chơi</h2>
+                        {% if winner %}
+                            <div class="winner-avatar">
+                                <img src="{{ winner.avatar }}" alt="Winner Avatar">
+                            </div>
+                            <p>{{ winner.displayName }} đã chiến thắng!</p>
+                        {% else %}
+                            <p>Trò chơi đã kết thúc</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="after-game-controls">
+                <a href="{{ url_for('after_game.replay', game_id=game.game_id) }}" class="btn primary-btn">
+                    Chơi lại
+                    <span class="key-hint">↵ Enter</span>
+                </a>
+                <a href="{{ url_for('after_game.leave_room', game_id=game.game_id) }}" class="btn secondary-btn">
+                    Về trang chủ
+                    <span class="key-hint">Esc</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                window.location.href = "{{ url_for('after_game.replay', game_id=game.game_id) }}";
+            } else if (event.key === 'Escape') {
+                window.location.href = "{{ url_for('after_game.leave_room', game_id=game.game_id) }}";
+            }
+        });
+    </script>
+</body>
+</html> 

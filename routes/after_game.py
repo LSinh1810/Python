@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, request, make_response
-from models import User, Game
+from models import User, Game, Move
 from app import db, socketio
 from flask_socketio import emit
 
@@ -38,12 +38,16 @@ def index(game_id):
         opponent_id = game.player2_id if game.player1_id == user_id else game.player1_id
         opponent = User.query.get(opponent_id)
     
+    # Get moves count
+    moves_count = Move.query.filter_by(game_id=game_id).count()
+    
     return render_template('after_game.htm', 
                           user=user, 
                           game=game, 
                           winner=winner,
                           is_pve=is_pve,
-                          opponent=opponent)
+                          opponent=opponent,
+                          moves_count=moves_count)
 
 @after_game_bp.route('/replay/<int:game_id>')
 def replay(game_id):
