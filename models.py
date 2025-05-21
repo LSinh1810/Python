@@ -14,8 +14,7 @@ class Game(db.Model):
     player1_id = db.Column(db.String(10))
     player2_id = db.Column(db.String(10))
     winner_id = db.Column(db.String(10), nullable=True)
-    status = db.Column(db.String(20), default='ongoing')  # 'ongoing', 'completed', 'waiting'
-    current_player_id = db.Column(db.String(10), db.ForeignKey('users.user_id'), nullable=True)
+    status = db.Column(db.String(20), default='ongoing')  # 'ongoing', 'completed'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Move(db.Model):

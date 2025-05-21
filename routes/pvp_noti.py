@@ -53,8 +53,13 @@ def create_pvp_game():
     db.session.add(new_game)
     db.session.commit()
     
+<<<<<<< HEAD
     # Store game_id in cookie and redirect to waiting room
     response = make_response(redirect(url_for('pvp.wait_for_opponent', room_code=room_code)))
+=======
+    # Store game_id in cookie
+    response = make_response(redirect(url_for('pvp.index')))
+>>>>>>> 9659b1dfd28954a0967c6643b0ede3957388a8ab
     response.set_cookie('game_id', str(new_game.game_id), max_age=60*60*24)  # 24 hours
     
     return response

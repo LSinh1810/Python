@@ -3,18 +3,22 @@ import string
 from flask import Flask
 from extensions import db, socketio
 import pymysql
+from flask_cors import CORS
 
 pymysql.install_as_MySQLdb()
 
 def create_app():
     app = Flask(__name__)
+    CORS(app)  # Enable CORS
     app.config['SECRET_KEY'] = 'caro_game_secret_key'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:1234@localhost/CaroPython'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SOCKETIO_PING_TIMEOUT'] = 10
+    app.config['SOCKETIO_PING_INTERVAL'] = 5
 
     # Initialize extensions
     db.init_app(app)
-    socketio.init_app(app)
+    socketio.init_app(app, cors_allowed_origins="*", async_mode='threading')
     
     # Add Jinja2 functions
     app.jinja_env.globals.update(enumerate=enumerate)
@@ -45,4 +49,4 @@ if __name__ == '__main__':
     app = create_app()
     with app.app_context():
         db.create_all()  # Chỉ tạo bảng Game
-    socketio.run(app, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)

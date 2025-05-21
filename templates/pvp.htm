@@ -32,6 +32,15 @@
           <span class="coin-display">
             🪙 {{ user.coins if user.coins else '0' }}
           </span>
+          {% if is_player1 %}
+          <div class="room-info">
+            <p>Mã phòng: <strong>{{ room_code }}</strong></p>
+            <p>
+              Link game:
+              <a href="{{ game_link }}" target="_blank">{{ game_link }}</a>
+            </p>
+          </div>
+          {% endif %}
         </div>
 
         <!-- Player 2 Info -->
@@ -56,19 +65,6 @@
         <!-- Game Board -->
         <div class="game-board" id="game-board">
           <!-- Board will be generated via JavaScript -->
-        </div>
-
-        <!-- Chat Area -->
-        <div class="chat-area">
-          <div class="chat-messages" id="chat-messages">
-            <!-- Messages will be added dynamically -->
-          </div>
-
-          <div class="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Viết tin nhắn..." />
-            <button id="emoji-btn">😊</button>
-            <button id="send-btn">📨</button>
-          </div>
         </div>
       </div>
 
@@ -115,6 +111,7 @@
     <script>
       // Connect to Socket.IO
       const socket = io();
+<<<<<<< HEAD
       const roomCode = "{{ room_code }}";
       const userId = "{{ user.user_id }}";
       const userDisplayName = "{{ user.displayName }}";
@@ -139,11 +136,28 @@
               room: roomCode,
               display_name: userDisplayName 
           });
+=======
+      const gameId = "{{ game.game_id }}";
+      const userId = "{{ user.user_id }}";
+      const displayName = "{{ user.displayName }}";
+      const isPlayer1 = {{ 'true' if is_player1 else 'false' }};
+      const roomCode = "{{ game.room_code }}";
+
+      // Join the room first
+      socket.emit('join', { room: roomCode });
+
+      // Then join the game
+      socket.emit('join_game', {
+          game_id: gameId,
+          player_id: userId,
+          display_name: displayName,
+          room: roomCode
+>>>>>>> 9659b1dfd28954a0967c6643b0ede3957388a8ab
       });
 
       // Game state
-      let board = Array(15).fill().map(() => Array(15).fill(0));
-      let currentPlayer = 1;  // 1 for player 1, 2 for player 2
+      let board = Array(15).fill().map(() => Array(15).fill(null));
+      let currentPlayer = null;
       let gameOver = false;
 
       // Initialize the game board
@@ -155,15 +169,16 @@
               for (let x = 0; x < 15; x++) {
                   const cell = document.createElement('div');
                   cell.className = 'board-cell';
-                  cell.dataset.x = x;
-                  cell.dataset.y = y;
-                  cell.addEventListener('click', () => makeMove(x, y));
+                  cell.dataset.row = y;
+                  cell.dataset.col = x;
+                  cell.addEventListener('click', () => makeMove(y, x));
                   boardElement.appendChild(cell);
               }
           }
       }
 
       // Make a move
+<<<<<<< HEAD
       function makeMove(x, y) {
           console.log(`makeMove called for x: ${x}, y: ${y}. Current player ID: ${game.current_player_id}, This user ID: ${userId}`);
           if (game.isOver || game.board[y][x] !== 0) {
@@ -267,6 +282,45 @@
           chatMessages.scrollTop = chatMessages.scrollHeight;
       }
 
+=======
+      function makeMove(row, col) {
+          if (gameOver || board[row][col] !== null || currentPlayer !== userId) {
+              return;
+          }
+
+          socket.emit('move', {
+              game_id: gameId,
+              row: row,
+              col: col,
+              player_id: userId,
+              room: roomCode
+          });
+      }
+
+      // Update the UI to reflect the current board state
+      function updateBoardUI() {
+          const cells = document.querySelectorAll('.board-cell');
+          cells.forEach(cell => {
+              const row = parseInt(cell.dataset.row);
+              const col = parseInt(cell.dataset.col);
+              const value = board[row][col];
+
+              cell.className = 'board-cell';
+              if (value === userId) {
+                  cell.classList.add('player1');
+              } else if (value) {
+                  cell.classList.add('player2');
+              }
+          });
+
+          // Update current player indicator
+          const currentPlayerIndicator = document.querySelector('.current-player');
+          if (currentPlayerIndicator) {
+              currentPlayerIndicator.textContent = currentPlayer === userId ? 'Your turn' : 'Opponent\'s turn';
+          }
+      }
+
+>>>>>>> 9659b1dfd28954a0967c6643b0ede3957388a8ab
       // Show game over screen
       function showGameOver(winnerName, isCurrentUserWinner) {
           const modal = document.getElementById('game-over-modal');
@@ -274,7 +328,11 @@
           const progressBar = document.getElementById('progress-bar');
           const winnerAvatar = document.getElementById('winner-avatar');
 
+<<<<<<< HEAD
           if (isCurrentUserWinner) {
+=======
+          if (winner === userId) {
+>>>>>>> 9659b1dfd28954a0967c6643b0ede3957388a8ab
               result.textContent = 'Bạn đã thắng!';
               progressBar.style.width = '70%';
               winnerAvatar.querySelector('img').src = "{{ url_for('static', filename='images/avatar_0.png' if is_player1 else 'avatar_1.png') }}";
@@ -287,36 +345,8 @@
           modal.style.display = 'flex';
       }
 
-      // Request replay
-      function requestReplay() {
-          socket.emit('replay_request', {
-              room: roomCode
-          });
-
-          const result = document.getElementById('game-result');
-          result.textContent = 'Đang chờ đối thủ...';
-      }
-
-      // Event listeners
-      document.getElementById('play-again-btn').addEventListener('click', requestReplay);
-      document.getElementById('leave-room-btn').addEventListener('click', () => {
-          window.location.href = "{{ url_for('home.index') }}";
-      });
-
-      document.querySelector('.give-up-btn').addEventListener('click', () => {
-          if (confirm('Bạn có chắc chắn muốn từ bỏ?')) {
-              window.location.href = "{{ url_for('home.index') }}";
-          }
-      });
-
-      document.getElementById('send-btn').addEventListener('click', sendMessage);
-      document.getElementById('chat-input').addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') {
-              sendMessage();
-          }
-      });
-
       // Socket.IO events
+<<<<<<< HEAD
       socket.on('status', (data) => {
           console.log('Status message:', data.msg);
           addMessage("System", data.msg, new Date().toLocaleTimeString());
@@ -345,6 +375,24 @@
               document.getElementById('game-result').textContent = "Trò chơi kết thúc: " + data.reason;
               document.getElementById('game-over-modal').style.display = 'flex';
           }
+=======
+      socket.on('game_state', (data) => {
+          board = data.board;
+          currentPlayer = data.current_player_id;
+          gameOver = false;
+          updateBoardUI();
+      });
+
+      socket.on('move_made', (data) => {
+          board[data.row][data.col] = data.player_id;
+          currentPlayer = data.current_player_id;
+          updateBoardUI();
+      });
+
+      socket.on('game_over', (data) => {
+          gameOver = true;
+          showGameOver(data.winner_id);
+>>>>>>> 9659b1dfd28954a0967c6643b0ede3957388a8ab
       });
 
       socket.on('error', (data) => {
@@ -352,6 +400,7 @@
           alert("Lỗi: " + data.msg);
       });
 
+<<<<<<< HEAD
       socket.on('opponent_joined', (data) => {
         console.log('Opponent joined data from server:', data); 
         const player2NameElement = document.querySelector(".player-info.right .player-name");
@@ -472,6 +521,29 @@
         updateTimerDisplay(isPlayer1); 
         updateTimerDisplay(!isPlayer1);
       }
+=======
+      // Initialize the game
+      initBoard();
+
+      // Listen for player joined event
+      socket.on('player_joined', (data) => {
+          // Update player 2 info
+          const player2Name = document.querySelector('.player2 .player-name');
+          player2Name.textContent = data.display_name;
+
+          // Update game state
+          currentPlayer = data.current_player_id;
+          gameOver = false;
+      });
+
+      // Listen for game started event
+      socket.on('game_started', (data) => {
+          currentPlayer = data.current_player_id;
+          gameOver = false;
+          board = data.board || Array(15).fill().map(() => Array(15).fill(null));
+          updateBoardUI();
+      });
+>>>>>>> 9659b1dfd28954a0967c6643b0ede3957388a8ab
     </script>
   </body>
 </html>
