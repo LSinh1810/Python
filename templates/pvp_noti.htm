@@ -36,11 +36,25 @@
                         <span class="setting-value">Ngẫu nhiên</span>
                     </div>
                 </div>
+
+                <hr style="margin: 20px 0;">
+
+                <h3>Tham gia phòng</h3>
+                <form action="{{ url_for('pvp_noti.join_pvp_game') }}" method="POST">
+                    <div class="form-group">
+                        <label for="room_code">Nhập ID phòng:</label>
+                        <input type="text" id="room_code" name="room_code" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn secondary-btn">Tham gia phòng</button>
+                </form>
+                {% if error %}
+                    <p style="color: red;">{{ error }}</p>
+                {% endif %}
             </div>
             
             <div class="modal-footer">
                 <a href="{{ url_for('pvp_noti.create_pvp_game') }}" class="btn primary-btn">
-                    Tiếp tục
+                    Tạo phòng mới
                     <span class="key-hint">↵ Enter</span>
                 </a>
             </div>

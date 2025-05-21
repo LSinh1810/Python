@@ -21,7 +21,6 @@ def create_app():
 
     # Import and register blueprints
     from routes.home import home_bp
-    from routes.qr_code import qr_code_bp
     from routes.after_game import after_game_bp
     from routes.leaderboard import leaderboard_bp
     from routes.store import store_bp
@@ -31,7 +30,6 @@ def create_app():
     from routes.pve import pve_bp
     from routes.profile import profile_bp
     app.register_blueprint(home_bp)
-    app.register_blueprint(qr_code_bp)
     app.register_blueprint(after_game_bp)
     app.register_blueprint(leaderboard_bp)
     app.register_blueprint(store_bp)

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiting for Opponent - Caro Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+</head>
+<body>
+    <div class="modal-overlay">
+        <div class="game-modal">
+            <div class="modal-header">
+                <h2>Chờ đối thủ...</h2>
+            </div>
+            <div class="modal-body">
+                <p>Xin chào, {{ display_name }}!</p>
+                <p>Mã phòng của bạn là: <strong>{{ room_code }}</strong></p>
+                <p>Hãy chia sẻ mã này với bạn bè để họ tham gia.</p>
+                <p id="status_message">Đang chờ người chơi thứ hai tham gia...</p>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="roomLink">Hoặc sao chép link phòng:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" value="{{ url_for('pvp_noti.index', _external=True) }}?join_room={{ room_code }}" id="roomLink" class="form-control" readonly style="flex-grow: 1;">
+                        <button onclick="copyLink()" class="btn secondary-btn">Sao chép</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{{ url_for('home.index') }}" class="btn secondary-btn">Quay lại Trang chủ</a>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const socket = io();
+        const roomCode = "{{ room_code }}";
+        const gameId = "{{ game_id }}"; // We might need this for other socket events if any
+
+        socket.on('connect', () => {
+            console.log('Connected to SocketIO server from waiting room.');
+            // Join the specific room for this game
+            socket.emit('join_pvp_room', { room: roomCode, display_name: "{{ display_name }}" });
+        });
+
+        socket.on('status', (data) => {
+            console.log('Status: ' + data.msg);
+            // You can update a status element on the page if you want
+            // e.g., document.getElementById('status_updates').innerText = data.msg;
+        });
+
+        socket.on('opponent_joined', (data) => {
+            console.log('Opponent joined!', data);
+            if (data.room_code === roomCode) {
+                document.getElementById('status_message').innerText = data.message;
+                // Both players (creator and joiner) will receive this and be redirected.
+                // The server sends the game_url to redirect to.
+                window.location.href = data.game_url;
+            }
+        });
+        
+        socket.on('error', (data) => {
+            console.error('SocketIO Error:', data.msg);
+            alert('Lỗi: ' + data.msg);
+        });
+
+        function copyLink() {
+            var copyText = document.getElementById("roomLink");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); /* For mobile devices */
+            document.execCommand("copy");
+            alert("Đã sao chép link phòng: " + copyText.value);
+        }
+    </script>
+</body>
+</html> 

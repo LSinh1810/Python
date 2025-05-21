@@ -14,7 +14,8 @@ class Game(db.Model):
     player1_id = db.Column(db.String(10))
     player2_id = db.Column(db.String(10))
     winner_id = db.Column(db.String(10), nullable=True)
-    status = db.Column(db.String(20), default='ongoing')  # 'ongoing', 'completed'
+    status = db.Column(db.String(20), default='ongoing')  # 'ongoing', 'completed', 'waiting'
+    current_player_id = db.Column(db.String(10), db.ForeignKey('users.user_id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Move(db.Model):
@@ -30,6 +31,9 @@ class Leaderboard(db.Model):
     rank_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(10), db.ForeignKey('users.user_id'))
     wins = db.Column(db.Integer, default=0)
+    losses = db.Column(db.Integer, default=0)
+    total_games = db.Column(db.Integer, default=0)
+    win_rate = db.Column(db.Float, default=0.0)
 
 class Avatar(db.Model):
     avatar_id = db.Column(db.Integer, primary_key=True)
