@@ -7,7 +7,6 @@ from datetime import datetime
 
 pvp_bp = Blueprint('pvp', __name__)
 
-# Update the render_template calls in the pvp.py file
 @pvp_bp.route('/pvp')
 def index():
     # Check if user has cookies
@@ -37,11 +36,22 @@ def index():
     # Get moves data
     moves = Move.query.filter_by(game_id=game.game_id).order_by(Move.move_order).all()
     
+    # Determine if current user is player 1
+    is_player1 = game.player1_id == user_id
+    
+    # Get player 1 and player 2 data
+    player1 = User.query.get(game.player1_id)
+    player2 = User.query.get(game.player2_id) if game.player2_id else None
+    
     return render_template('pvp.htm', 
-                          user=user, 
+                          user=user,
+                          player1=player1,
+                          player2=player2,
                           opponent=opponent,
                           game=game, 
-                          moves=moves)
+                          moves=moves,
+                          is_player1=is_player1,
+                          room_code=game.room_code)
 
 @socketio.on('join')
 def on_join(data):
@@ -55,7 +65,7 @@ def on_leave(data):
     leave_room(room)
     emit('status', {'msg': f"{session.get('display_name', 'Anonymous')} has left the room."}, room=room)
 
-@socketio.on('move')
+@socketio.on('make_move')
 def handle_move(data):
     game_id = data['game_id']
     x = data['x']
@@ -119,16 +129,16 @@ def handle_move(data):
             'player_id': player_id
         }, room=room)
 
-@socketio.on('chat')
+@socketio.on('chat_message')
 def handle_chat(data):
     room = data['room']
     message = data['message']
     username = session.get('display_name', 'Anonymous')
     
-    emit('chat_message', {
-        'username': username,
+    emit('new_message', {
+        'sender': username,
         'message': message,
-        'timestamp': datetime.now().strftime('%H:%M')
+        'time': datetime.now().strftime('%H:%M')
     }, room=room)
 
 @pvp_bp.route('/give_up')

@@ -31,7 +31,7 @@ def create_app():
     from routes.pve import pve_bp
     from routes.profile import profile_bp
     app.register_blueprint(home_bp)
-    app.register_blueprint(qr_code_bp, url_prefix='/qr_code')
+    app.register_blueprint(qr_code_bp)
     app.register_blueprint(after_game_bp)
     app.register_blueprint(leaderboard_bp)
     app.register_blueprint(store_bp)

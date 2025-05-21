@@ -1,256 +1,322 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Account - Caro Game</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
     <style>
-        .avatar-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .avatar-item {
-            position: relative;
-            width: 100px;
-            height: 100px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .avatar-item.active {
-            border-color: #4CAF50;
-        }
-        
-        .avatar-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .avatar-item input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-        
-        .avatar-item:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        
-        .avatar-item::after {
-            content: "";
-            position: absolute;
-            right: 5px;
-            bottom: 5px;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background-color: #fff;
-            border: 2px solid #ddd;
-            display: none;
-        }
-        
-        .avatar-item.active::after {
-            display: block;
-            background-color: #4CAF50;
-            border-color: #fff;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="user-info">
-                <img src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}" class="avatar">
-                <div class="user-details">
-                    <h3>{{ user.displayName }}</h3>
-                    <span class="coins">{{ user_coins }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins"></span>
-                </div>
-            </div>
-            
-            <nav class="menu">
-                <a href="{{ url_for('home.index') }}" class="menu-item">
-                    <span class="icon">🏠</span>
-                    <span>Trang chủ</span>
-                </a>
-                <a href="{{ url_for('store.index') }}" class="menu-item">
-                    <span class="icon">🎁</span>
-                    <span>Vật phẩm</span>
-                </a>
-                <a href="{{ url_for('profile.index') }}" class="menu-item active">
-                    <span class="icon">👤</span>
-                    <span>Hồ sơ</span>
-                </a>
-            </nav>
-        </div>
-        
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="profile-container">
-                <h1>Tài khoản của tôi</h1>
-                
-                <form action="{{ url_for('profile.update_profile') }}" method="POST" class="profile-form">
-                    <div class="form-group">
-                        <label for="displayName">Tên hiển thị</label>
-                        <input type="text" id="displayName" name="displayName" value="{{ user.displayName }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="user_id">ID</label>
-                        <div class="id-field">
-                            <input type="text" id="user_id" value="{{ user.user_id }}" readonly>
-                            <button type="button" class="copy-btn" onclick="copyUserId()">📋</button>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Avatar hiện tại</label>
-                        <div class="current-avatar">
-                            <img src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}" alt="Current Avatar" class="avatar-preview">
-                        </div>
-                    </div>
+      .avatar-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
 
-                    <div class="form-group">
-                        <label>Avatar đã mua</label>
-                        <div class="avatar-grid">
-                            {% if user_avatars %}
-                                <!-- Avatar mặc định -->
-                                <div class="avatar-item {% if user.avatar == '/static/images/default_avatar.png' %}active{% endif %}">
-                                    <img src="/static/images/default_avatar.png" alt="Avatar mặc định">
-                                    <input type="radio" name="selected_avatar" value="{{ default_avatar_id }}" {% if user.avatar == '/static/images/default_avatar.png' %}checked{% endif %}>
-                                </div>
-                                
-                                {% for avatar in user_avatars %}
-                                {% if avatar.image_url != '/static/images/default_avatar.png' %}
-                                <div class="avatar-item {% if user.avatar == avatar.image_url %}active{% endif %}">
-                                    <img src="{{ avatar.image_url }}" alt="Avatar {{ avatar.avatar_id }}">
-                                    <input type="radio" name="selected_avatar" value="{{ avatar.avatar_id }}" {% if user.avatar == avatar.image_url %}checked{% endif %}>
-                                </div>
-                                {% endif %}
-                                {% endfor %}
-                            {% else %}
-                                <p class="no-items">Bạn chưa mua avatar nào. Hãy đến <a href="{{ url_for('store.index') }}">Cửa hàng</a> để mua avatar mới!</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <button type="submit" class="btn primary-btn">Cập nhật</button>
-                </form>
-                
-                <div class="delete-account">
-                    <h2>Xóa tài khoản</h2>
-                    <p>
-                        Việc xóa tài khoản sẽ xóa vĩnh viễn tài khoản, gồi đấu, trò 
-                        chơi, thứ hạng và email liên trì của bạn. Không thể hoàn tác 
-                        hành động này.
-                    </p>
-                    <button type="button" class="btn danger-btn" id="delete-btn">Xóa tài khoản</button>
+      .avatar-item {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .avatar-item.active {
+        border-color: #4caf50;
+      }
+
+      .avatar-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .avatar-item input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+
+      .avatar-item:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .avatar-item::after {
+        content: "";
+        position: absolute;
+        right: 5px;
+        bottom: 5px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #fff;
+        border: 2px solid #ddd;
+        display: none;
+      }
+
+      .avatar-item.active::after {
+        display: block;
+        background-color: #4caf50;
+        border-color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="user-info">
+          <img
+            src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}"
+            class="avatar"
+          />
+          <div class="user-details">
+            <h3>{{ user.displayName }}</h3>
+            <span class="coins"
+              >{{ user_coins }}
+              <img
+                src="{{ url_for('static', filename='images/coin.png') }}"
+                alt="Coins"
+            /></span>
+          </div>
+        </div>
+
+        <nav class="menu">
+          <a href="{{ url_for('home.index') }}" class="menu-item">
+            <span class="icon">🏠</span>
+            <span>Trang chủ</span>
+          </a>
+          <a href="{{ url_for('store.index') }}" class="menu-item">
+            <span class="icon">🎁</span>
+            <span>Vật phẩm</span>
+          </a>
+          <a href="{{ url_for('profile.index') }}" class="menu-item active">
+            <span class="icon">👤</span>
+            <span>Hồ sơ</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <div class="profile-container">
+          <h1>Tài khoản của tôi</h1>
+
+          <form
+            action="{{ url_for('profile.update_profile') }}"
+            method="POST"
+            class="profile-form"
+          >
+            <div class="form-group">
+              <label for="displayName">Tên hiển thị</label>
+              <input
+                type="text"
+                id="displayName"
+                name="displayName"
+                value="{{ user.displayName }}"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="user_id">ID</label>
+              <div class="id-field">
+                <input
+                  type="text"
+                  id="user_id"
+                  value="{{ user.user_id }}"
+                  readonly
+                />
+                <button type="button" class="copy-btn" onclick="copyUserId()">
+                  📋
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Avatar hiện tại</label>
+              <div class="current-avatar">
+                <img
+                  src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}"
+                  alt="Current Avatar"
+                  class="avatar-preview"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Avatar đã mua</label>
+              <div class="avatar-grid">
+                {% if user_avatars %}
+                <!-- Avatar mặc định -->
+                <div
+                  class="avatar-item {% if user.avatar == '/static/images/default_avatar.png' %}active{% endif %}"
+                >
+                  <img
+                    src="/static/images/default_avatar.png"
+                    alt="Avatar mặc định"
+                  />
+                  <input type="radio" name="selected_avatar" value="{{
+                  default_avatar_id }}" {% if user.avatar ==
+                  '/static/images/default_avatar.png' %}checked{% endif %}>
                 </div>
+
+                {% for avatar in user_avatars %} {% if avatar.image_url !=
+                '/static/images/default_avatar.png' %}
+                <div
+                  class="avatar-item {% if user.avatar == avatar.image_url %}active{% endif %}"
+                >
+                  <img
+                    src="{{ avatar.image_url }}"
+                    alt="Avatar {{ avatar.avatar_id }}"
+                  />
+                  <input type="radio" name="selected_avatar" value="{{
+                  avatar.avatar_id }}" {% if user.avatar == avatar.image_url
+                  %}checked{% endif %}>
+                </div>
+                {% endif %} {% endfor %} {% else %}
+                <p class="no-items">
+                  Bạn chưa mua avatar nào. Hãy đến
+                  <a href="{{ url_for('store.index') }}">Cửa hàng</a> để mua
+                  avatar mới!
+                </p>
+                {% endif %}
+              </div>
             </div>
+
+            <button type="submit" class="btn primary-btn">Cập nhật</button>
+          </form>
+
+          <div class="delete-account">
+            <h2>Xóa tài khoản</h2>
+            <p>
+              Việc xóa tài khoản sẽ xóa vĩnh viễn tài khoản, lịch sử đấu, trò
+              chơi, thứ hạng và email của bạn. Không thể hoàn tác hành động này.
+            </p>
+            <button type="button" class="btn danger-btn" id="delete-btn">
+              Xóa tài khoản
+            </button>
+          </div>
         </div>
-        
-        <!-- User Profile Sidebar -->
-        <div class="profile-sidebar">
-            <div class="profile-sidebar-header">
-                <a href="{{ url_for('home.index') }}" class="close-btn">&times;</a>
-            </div>
-            
-            <div class="profile-user-info">
-                <h3>{{ user.displayName }}</h3>
-            </div>
-            
-            <div class="profile-avatar">
-                <img src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}" alt="Avatar">
-            </div>
-            
-            <div class="profile-coins" style="text-align: center; margin-top: 10px;">
-                <span class="coins">{{ user_coins }} <img src="{{ url_for('static', filename='images/coin.png') }}" alt="Coins"></span>
-            </div>
+      </div>
+
+      <!-- User Profile Sidebar -->
+      <div class="profile-sidebar">
+        <div class="profile-sidebar-header">
+          <a href="{{ url_for('home.index') }}" class="close-btn">&times;</a>
         </div>
+
+        <div class="profile-user-info">
+          <h3>{{ user.displayName }}</h3>
+        </div>
+
+        <div class="profile-avatar">
+          <img
+            src="{{ request.cookies.get('user_avatar') or user.avatar or url_for('static', filename='images/default_avatar.png') }}"
+            alt="Avatar"
+          />
+        </div>
+
+        <div class="profile-coins" style="text-align: center; margin-top: 10px">
+          <span class="coins"
+            >{{ user_coins }}
+            <img
+              src="{{ url_for('static', filename='images/coin.png') }}"
+              alt="Coins"
+          /></span>
+        </div>
+      </div>
     </div>
-    
+
     <script>
-        function copyUserId() {
-            const idInput = document.getElementById('user_id');
-            idInput.select();
-            document.execCommand('copy');
-            
-            // Show copied notification
-            alert('ID copied to clipboard!');
-        }
-        
-        document.getElementById('delete-btn').addEventListener('click', function() {
-            if (confirm('Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.')) {
-                // Gửi request xóa tài khoản đến server
-                fetch('{{ url_for("profile.delete_account") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => {
-                    // Sau khi xóa thành công, xóa cookies
-                    const cookies = document.cookie.split(";");
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i];
-                        const eqPos = cookie.indexOf("=");
-                        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-                        document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
-                    }
-                    
-                    // Chuyển hướng đến trang enter_name
-                    window.location.href = "{{ url_for('home.enter_name') }}";
-                })
-                .catch(error => {
-                    console.error('Lỗi khi xóa tài khoản:', error);
-                    alert('Có lỗi xảy ra khi xóa tài khoản. Vui lòng thử lại sau.');
-                });
+      function copyUserId() {
+        const idInput = document.getElementById("user_id");
+        idInput.select();
+        document.execCommand("copy");
+
+        // Show copied notification
+        alert("ID copied to clipboard!");
+      }
+
+      document
+        .getElementById("delete-btn")
+        .addEventListener("click", function () {
+          if (
+            confirm(
+              "Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác."
+            )
+          ) {
+            // Gửi request xóa tài khoản đến server
+            fetch('{{ url_for("profile.delete_account") }}', {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            })
+              .then((response) => {
+                // Sau khi xóa thành công, xóa cookies
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                  const cookie = cookies[i];
+                  const eqPos = cookie.indexOf("=");
+                  const name =
+                    eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                  document.cookie =
+                    name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                }
+
+                // Chuyển hướng đến trang enter_name
+                window.location.href = "{{ url_for('home.enter_name') }}";
+              })
+              .catch((error) => {
+                console.error("Lỗi khi xóa tài khoản:", error);
+                alert("Có lỗi xảy ra khi xóa tài khoản. Vui lòng thử lại sau.");
+              });
+          }
+        });
+
+      // Xử lý chọn avatar
+      document.addEventListener("DOMContentLoaded", function () {
+        const avatarItems = document.querySelectorAll(".avatar-item");
+        const radioButtons = document.querySelectorAll(
+          'input[name="selected_avatar"]'
+        );
+
+        radioButtons.forEach((radio) => {
+          radio.addEventListener("change", function () {
+            // Xóa class active khỏi tất cả avatar
+            avatarItems.forEach((item) => {
+              item.classList.remove("active");
+            });
+
+            // Thêm class active cho avatar được chọn
+            if (this.checked) {
+              this.closest(".avatar-item").classList.add("active");
             }
+          });
         });
-        
-        // Xử lý chọn avatar
-        document.addEventListener('DOMContentLoaded', function() {
-            const avatarItems = document.querySelectorAll('.avatar-item');
-            const radioButtons = document.querySelectorAll('input[name="selected_avatar"]');
-            
-            radioButtons.forEach(radio => {
-                radio.addEventListener('change', function() {
-                    // Xóa class active khỏi tất cả avatar
-                    avatarItems.forEach(item => {
-                        item.classList.remove('active');
-                    });
-                    
-                    // Thêm class active cho avatar được chọn
-                    if (this.checked) {
-                        this.closest('.avatar-item').classList.add('active');
-                    }
-                });
-            });
-            
-            // Cho phép click vào avatar để chọn radio button
-            avatarItems.forEach(item => {
-                item.addEventListener('click', function(e) {
-                    const radio = this.querySelector('input[type="radio"]');
-                    if (radio && e.target !== radio) {
-                        radio.checked = true;
-                        
-                        // Trigger event change để cập nhật UI
-                        const event = new Event('change');
-                        radio.dispatchEvent(event);
-                    }
-                });
-            });
+
+        // Cho phép click vào avatar để chọn radio button
+        avatarItems.forEach((item) => {
+          item.addEventListener("click", function (e) {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio && e.target !== radio) {
+              radio.checked = true;
+
+              // Trigger event change để cập nhật UI
+              const event = new Event("change");
+              radio.dispatchEvent(event);
+            }
+          });
         });
+      });
     </script>
-</body>
+  </body>
 </html>

@@ -7,7 +7,7 @@ import base64
 
 qr_code_bp = Blueprint('qr_code', __name__)
 
-@qr_code_bp.route('/<room_code>')
+@qr_code_bp.route('/qr_code/<room_code>')
 def index(room_code):
     # Check if user has cookies
     user_id = request.cookies.get('user_id')
@@ -24,7 +24,7 @@ def index(room_code):
         user = create_new_user(user_id, display_name)
     
     # Generate QR code
-    game_link = f"http://localhost:5000/join_game/{room_code}"
+    game_link = f"http://localhost:5000/join/{room_code}"
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(game_link)
     qr.make(fit=True)
@@ -40,35 +40,40 @@ def index(room_code):
                          room_code=room_code, 
                          qr_code=qr_code_base64)
 
-@qr_code_bp.route('/join_game/<room_code>')
+@qr_code_bp.route('/join/<room_code>')
 def join_game(room_code):
-    # Get user info from cookies
+    # Check if user has cookies
     user_id = request.cookies.get('user_id')
     display_name = request.cookies.get('display_name')
-
-    # If no cookies, redirect to name input page
+    
     if not user_id or not display_name:
-        response = make_response(redirect(url_for('home.index')))
-        response.set_cookie('join_room', room_code, max_age=60*60)  # 1 hour
-        return response
-
-    # Find game with room_code
+        return redirect(url_for('home.enter_name'))
+    
+    # Get game data
     game = Game.query.filter_by(room_code=room_code).first()
     if not game:
         return redirect(url_for('home.index'))
-
-    # If second player, add to game
-    if game.player1_id != user_id and not game.player2_id:
+    
+    # Get user data
+    user = User.query.get(user_id)
+    if not user:
+        # Create user if not exists
+        from routes.home import create_new_user
+        user = create_new_user(user_id, display_name)
+    
+    # If game already has 2 players, redirect to game
+    if game.player1_id and game.player2_id:
+        return redirect(url_for('pvp.index'))
+    
+    # If this is player 1, redirect to game
+    if game.player1_id == user_id:
+        return redirect(url_for('pvp.index'))
+    
+    # If this is player 2 joining
+    if not game.player2_id:
         game.player2_id = user_id
         db.session.commit()
-
-    # Store game_id in cookie
-    response = make_response(redirect(url_for('pvp.index')))
-    response.set_cookie('game_id', str(game.game_id), max_age=60*60*24)  # 24 hours
-
-    # If both players have joined, go to game
-    if game.player1_id and game.player2_id:
-        return response
-
-    # If not, show waiting screen
-    return render_template('waiting.htm', user={"username": display_name}, room_code=room_code)
+        return redirect(url_for('pvp.index'))
+    
+    # If we get here, something went wrong
+    return redirect(url_for('home.index'))
