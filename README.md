@@ -16,7 +16,7 @@ Game cờ caro trực tuyến được xây dựng bằng Python Flask và Socke
 
 1. Tạo môi trường ảo và kích hoạt:
 ```
-python -m venv venv
+pip install flask flask-socketio pymysql flask-sqlalchemy
 venv\Scripts\activate  # Windows
 source venv/bin/activate  # Linux/Mac
 ```

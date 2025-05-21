@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, make_r
 from models import User, Game, Move
 from app import db, socketio
 from flask_socketio import emit
+import random
 
 after_game_bp = Blueprint('after_game', __name__)
 
@@ -79,7 +80,7 @@ def replay(game_id):
             player1_id=user_id,
             player2_id=None,
             status='ongoing',
-            room_code=f"pve_{game.room_code.split('_')[1]}"
+            room_code=f"pve_{random.randint(100000, 999999)}"  # Generate new random room code
         )
         
         db.session.add(new_game)

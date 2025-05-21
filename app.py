@@ -9,7 +9,7 @@ pymysql.install_as_MySQLdb()
 def create_app():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'caro_game_secret_key'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/CaroPython'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:1234@localhost/CaroPython'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # Initialize extensions
@@ -31,7 +31,7 @@ def create_app():
     from routes.pve import pve_bp
     from routes.profile import profile_bp
     app.register_blueprint(home_bp)
-    app.register_blueprint(qr_code_bp)
+    app.register_blueprint(qr_code_bp, url_prefix='/qr_code')
     app.register_blueprint(after_game_bp)
     app.register_blueprint(leaderboard_bp)
     app.register_blueprint(store_bp)
