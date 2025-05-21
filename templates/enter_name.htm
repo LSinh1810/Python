@@ -1,21 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nhập tên</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Nhập tên của bạn</h1>
-        <form method="POST" action="{{ url_for('home.enter_name') }}">
-            <input type="text" name="username" placeholder="Tên của bạn" required>
-            <button type="submit">Bắt đầu chơi</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Enter Your Name - Caro Game</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="enter-name-container">
+      <div class="enter-name-content">
+        <h2>Nhập tên của bạn</h2>
+
+        <form action="{{ url_for('home.set_name') }}" method="POST">
+          <input type="hidden" name="room_code" value="{{ room_code }}" />
+          <input
+            type="hidden"
+            name="is_player2"
+            value="{{ 'true' if is_player2 else 'false' }}"
+          />
+
+          <div class="form-group">
+            <input
+              type="text"
+              name="display_name"
+              placeholder="Tên của bạn"
+              required
+              autofocus
+            />
+          </div>
+
+          <div class="form-buttons">
+            <button type="submit" class="btn primary-btn">
+              Bắt đầu
+              <span class="key-hint">↵ Enter</span>
+            </button>
+          </div>
         </form>
-        {% if error %}
-        <p class="error">{{ error }}</p>
-        {% endif %}
+      </div>
     </div>
-</body>
+
+    <script>
+      // Handle keyboard shortcuts
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          document.querySelector("form").submit();
+        }
+      });
+    </script>
+  </body>
 </html>

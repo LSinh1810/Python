@@ -203,3 +203,35 @@ def enter_name():
         return response
 
     return render_template('set_name.htm')
+
+@home_bp.route('/set_name', methods=['POST'])
+def set_name():
+    display_name = request.form.get('display_name')
+    room_code = request.form.get('room_code')
+    is_player2 = request.form.get('is_player2') == 'true'
+    
+    if not display_name:
+        return redirect(url_for('home.enter_name'))
+    
+    # Generate a unique user ID
+    user_id = generate_user_id()
+    
+    # Create new user
+    user = User(user_id=user_id, displayName=display_name)
+    db.session.add(user)
+    db.session.commit()
+    
+    # Create response with cookies
+    if is_player2 and room_code:
+        # If this is player 2 joining a game, redirect to join route
+        response = make_response(redirect(url_for('pvp.join_game_route', room_code=room_code)))
+    else:
+        # Otherwise redirect to home
+        response = make_response(redirect(url_for('home.index')))
+    
+    # Set cookies
+    response.set_cookie('user_id', user_id, max_age=60*60*24)  # 24 hours
+    response.set_cookie('display_name', display_name, max_age=60*60*24)  # 24 hours
+    response.set_cookie('user_coins', '3000', max_age=60*60*24)  # Set default coins
+    
+    return response

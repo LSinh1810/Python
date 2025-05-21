@@ -53,7 +53,7 @@ def create_pvp_game():
     db.session.commit()
     
     # Store game_id in cookie
-    response = make_response(redirect(url_for('qr_code.index', room_code=room_code)))
+    response = make_response(redirect(url_for('pvp.index')))
     response.set_cookie('game_id', str(new_game.game_id), max_age=60*60*24)  # 24 hours
     
     return response

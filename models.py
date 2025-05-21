@@ -14,7 +14,10 @@ class Game(db.Model):
     player1_id = db.Column(db.String(10))
     player2_id = db.Column(db.String(10))
     winner_id = db.Column(db.String(10), nullable=True)
-    status = db.Column(db.String(20), default='ongoing')  # 'ongoing', 'completed'
+    status = db.Column(db.String(20), default='waiting')  # 'waiting', 'playing', 'finished'
+    current_player_id = db.Column(db.String(10), nullable=True)
+    board = db.Column(db.JSON, default=lambda: [[None for _ in range(15)] for _ in range(15)])
+    last_move = db.Column(db.JSON, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Move(db.Model):
